@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Portal | AKPsi Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body { font-family: 'Raleway', sans-serif; background-color: #f8f9fa; }
+    .portal-card {
+      margin-top: 100px;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .admin-btn {
+      width: 100%;
+      margin-bottom: 1rem;
+      font-size: 1.05rem;
+      padding: 0.8rem;
+      border-radius: 10px;
+    }
+    #loadingOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 2000;
+      color: #fff;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    #loadingOverlay.show { display: flex; }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
+          <li class="nav-item"><a class="nav-link" href="brother-portal.html">Brother Portal</a></li>
+          <li class="nav-item"><a class="nav-link active" href="admin-portal.html">Admin Portal</a></li>
+          <li class="nav-item"><a class="nav-link" href="mentions.html">Mentions</a></li>
+          <li class="nav-item"><a class="nav-link" href="pnm-dashboard.html">PNM Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
+          <li class="nav-item"><a class="btn btn-outline-light ms-2" href="signin.html" id="authButton">Sign In</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- Main -->
+  <main class="container">
+    <div class="portal-card text-center">
+      <h2 class="fw-bold mb-4">Admin Portal</h2>
+      <p class="text-muted mb-4">Administrative tools and data management.</p>
+
+      <div class="row justify-content-center mb-4">
+        <div class="col-md-6 col-lg-4">
+          <a href="upload-photo.html" class="btn btn-outline-primary admin-btn">
+            <i class="bi bi-cloud-upload"></i> Upload Photos
+          </a>
+          <a href="members.html" class="btn btn-outline-primary admin-btn">
+            <i class="bi bi-people"></i> Manage Members
+          </a>
+          <a href="mentions.html" class="btn btn-outline-primary admin-btn">
+            <i class="bi bi-chat-text"></i> Manage Mentions
+          </a>
+          <a href="interview-dashboard.html" class="btn btn-outline-primary admin-btn">
+            <i class="bi bi-clipboard-data"></i> Manage Interviews
+          </a>
+          <a href="pnm-dashboard.html" class="btn btn-outline-primary admin-btn">
+            <i class="bi bi-person-lines-fill"></i> View PNM Dashboard
+          </a>
+          <a href="rush-dashboard.html" class="btn btn-outline-primary admin-btn">
+            <i class="bi bi-graph-up"></i> View Rush Dashboard
+          </a>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <button id="generatePPT" class="btn btn-primary btn-lg">
+          <i class="bi bi-file-earmark-slides"></i> Generate Voting PowerPoint
+        </button>
+        <div class="form-text mt-2">
+          Each slide includes anonymized mentions and interview feedback — dynamically scaled and perfectly aligned.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="text-center">
+      <div class="spinner-border text-light" role="status"></div>
+      <p class="mt-3 mb-0">Generating PowerPoint...</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.10.0/dist/pptxgen.bundle.js"></script>
+
+  <script type="module">
+    import { auth, db, listenAuth } from "./jsauth.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getDocs, query, collection, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    const overlay = document.getElementById("loadingOverlay");
+    const greeting = document.getElementById("greeting");
+    const authButton = document.getElementById("authButton");
+
+    listenAuth({
+      greeting,
+      authButton,
+      brotherPortalLink: null,
+      adminPortalLink: null,
+      mentionsLink: null,
+      pnmDashboardLink: null,
+      rushDashboardLink: null,
+      interviewDashboardLink: null,
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "signin.html";
+        return;
+      }
+
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (!snap.exists() || (snap.data().role || "").toLowerCase() !== "admin") {
+        alert("Access denied — Admins only");
+        window.location.href = "index.html";
+        return;
+      }
+      greeting.textContent = `Hi, ${user.email.split('@')[0]}!`;
+      authButton.textContent = "Log Out";
+      authButton.onclick = async () => {
+        await signOut(auth);
+        window.location.href = "signin.html";
+      };
+    });
+
+    function calculateFontSize(count) {
+      if (count <= 10) return 14;
+      if (count <= 20) return 12;
+      if (count <= 30) return 11;
+      if (count <= 50) return 10;
+      if (count <= 70) return 9;
+      return 8;
+    }
+
+    document.getElementById("generatePPT").addEventListener("click", async () => {
+      overlay.classList.add("show");
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = "LAYOUT_16x9";
+
+        const pnmsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "pnm")));
+
+        for (const pnmDoc of pnmsSnap.docs) {
+          const pnm = pnmDoc.data();
+          const pnmId = pnmDoc.id;
+          const mSnap = await getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId)));
+
+          let pos = 0, neg = 0;
+          const mentions = [];
+          const interviews = [];
+          const friend = [], energy = [], interest = [];
+
+          mSnap.forEach(s => {
+            const d = s.data();
+            const mode = (d.mode || "mention").toLowerCase();
+            const txt = d.comment || "";
+            if (mode === "mention") {
+              if (d.type && d.type.toLowerCase() === "positive") pos++;
+              else if (d.type && d.type.toLowerCase() === "negative") neg++;
+              if (txt) mentions.push(`• ${txt}`);
+            } else if (mode === "interview") {
+              if (Number.isFinite(d.friendliness)) friend.push(Number(d.friendliness));
+              if (Number.isFinite(d.energy)) energy.push(Number(d.energy));
+              if (Number.isFinite(d.interest)) interest.push(Number(d.interest));
+              if (txt) interviews.unshift(`• ${txt}`); // reversed order for "growing up" look
+            }
+          });
+
+          const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : "N/A";
+          const friendAvg = avg(friend);
+          const energyAvg = avg(energy);
+          const interestAvg = avg(interest);
+
+          const totalLines = mentions.length + interviews.length;
+          const fontSize = calculateFontSize(totalLines);
+          const lineSpacing = Math.max(12, fontSize + 2);
+
+          let photoHeight = 2.0;
+          let photoWidth = 2.0;
+          if (totalLines > 30) {
+            const scale = Math.max(1.0, 2.0 - (totalLines - 30) * 0.05);
+            photoHeight = scale;
+            photoWidth = scale;
+          }
+
+          const totalSlides = Math.ceil(totalLines / 40);
+          for (let i = 0; i < totalSlides; i++) {
+            const slide = pptx.addSlide();
+            const isCont = i > 0;
+
+            slide.addText(`${pnm.firstName || ""} ${pnm.lastName || ""}${isCont ? " (Continued)" : ""}`,
+              { x: 0.4, y: 0.15, fontSize: 22, bold: true, color: "003366" });
+
+            if (!isCont) {
+              slide.addText(`+ Mentions: ${pos}   - Mentions: ${neg}`, { x: 0.4, y: 0.5, fontSize: 13 });
+              slide.addText(`Friendliness: ${friendAvg}   Energy: ${energyAvg}   Interest: ${interestAvg}`,
+                { x: 0.4, y: 0.75, fontSize: 13, color: "222222", w: 9.0 });
+              if (pnm.photoURL) {
+                try {
+                  slide.addImage({
+                    path: pnm.photoURL,
+                    x: 7.7,
+                    y: 0.15,
+                    w: photoWidth,
+                    h: photoHeight,
+                    sizing: { type: 'contain', w: photoWidth, h: photoHeight }
+                  });
+                } catch { }
+              }
+            }
+
+            slide.addText("Mentions:", { x: 0.4, y: 1.2, fontSize: 15, bold: true });
+
+            const leftItems = mentions.slice(i * 40, (i + 1) * 40);
+            const rightItems = interviews.slice(i * 40, (i + 1) * 40);
+
+            slide.addText(leftItems.join("\n"), {
+              x: 0.4, y: 1.6, w: 4.5, h: 7.2,
+              fontSize: fontSize, color: "333333", lineSpacing: lineSpacing,
+              valign: "top", margin: 2
+            });
+
+            slide.addText("Interview Feedback:", { x: 5.1, y: 2.0, fontSize: 15, bold: true });
+            slide.addText(rightItems.join("\n"), {
+              x: 5.1, y: 2.4, w: 4.5, h: 6.4,
+              fontSize: fontSize, color: "333333", lineSpacing: lineSpacing,
+              valign: "top", margin: 2
+            });
+          }
+        }
+
+        await pptx.writeFile({ fileName: "VotingNightSlides.pptx" });
+        alert("✅ PowerPoint generated successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("❌ Failed to generate PowerPoint. Check console for details.");
+      } finally {
+        overlay.classList.remove("show");
+      }
+    });
+  </script>
+</body>
+</html>

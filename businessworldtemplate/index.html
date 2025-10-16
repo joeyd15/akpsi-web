@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>AKPsi Portal</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Raleway', sans-serif;
+    }
+    .navbar-nav .dropdown-menu {
+      border-radius: 0.5rem;
+    }
+    header.hero-section {
+      height: 100vh;
+      margin-top: 56px;
+      background: url('images/stats.jpg') no-repeat center center/cover;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ✅ Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
+
+          <!-- Role-based links -->
+          <li class="nav-item d-none" id="brotherPortalLink">
+            <a class="nav-link" href="brother-portal.html">Brother Portal</a>
+          </li>
+          <li class="nav-item d-none" id="adminPortalLink">
+            <a class="nav-link" href="admin-portal.html">Admin Portal</a>
+          </li>
+          <li class="nav-item d-none" id="mentionsLink">
+            <a class="nav-link" href="mentions.html">Mentions</a>
+          </li>
+          <li class="nav-item d-none" id="pnmDashboardLink">
+            <a class="nav-link" href="pnm-dashboard.html">PNM Dashboard</a>
+          </li>
+          <li class="nav-item d-none" id="rushDashboardLink">
+            <a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a>
+          </li>
+          <li class="nav-item d-none" id="interviewDashboardLink">
+            <a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a>
+          </li>
+
+          <!-- Auth -->
+          <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
+          <li class="nav-item">
+            <a class="btn btn-outline-light ms-2" href="signin.html" id="authButton">Sign In</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero-section d-flex align-items-center justify-content-center text-center text-white">
+    <div class="container">
+      <h1 class="display-4 fw-bold">Welcome to the AKPsi Portal</h1>
+      <p class="lead mb-4">Manage Attendance • Rush • Credits • Voting • Interviews</p>
+    </div>
+  </header>
+
+  <!-- 🔥 Firebase Auth + Role Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
+      authDomain: "akpsi-web.firebaseapp.com",
+      projectId: "akpsi-web",
+      storageBucket: "akpsi-web.firebasestorage.app",
+      messagingSenderId: "268414380859",
+      appId: "1:268414380859:web:52cdd93b22d7801f60251e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const greeting = document.getElementById("greeting");
+    const authButton = document.getElementById("authButton");
+
+    const brotherPortalLink = document.getElementById("brotherPortalLink");
+    const adminPortalLink = document.getElementById("adminPortalLink");
+    const mentionsLink = document.getElementById("mentionsLink");
+    const pnmDashboardLink = document.getElementById("pnmDashboardLink");
+    const rushDashboardLink = document.getElementById("rushDashboardLink");
+    const interviewDashboardLink = document.getElementById("interviewDashboardLink");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        let role = "pnm";
+        let firstName = user.email;
+        if (docSnap.exists()) {
+          role = docSnap.data().role || "pnm";
+          firstName = docSnap.data().firstName || user.email;
+        }
+
+        greeting.textContent = `Hi, ${firstName}!`;
+        authButton.textContent = "Log Out";
+        authButton.href = "#";
+        authButton.onclick = async () => {
+          await signOut(auth);
+          window.location.href = "signin.html";
+        };
+
+        // ✅ Role-based visibility
+        if (role === "brother" || role === "admin") {
+          brotherPortalLink.classList.remove("d-none");
+          mentionsLink.classList.remove("d-none");
+        }
+        if (role === "admin") {
+          adminPortalLink.classList.remove("d-none");
+          pnmDashboardLink.classList.remove("d-none");
+          rushDashboardLink.classList.remove("d-none");
+          interviewDashboardLink.classList.remove("d-none");
+        }
+      } else {
+        greeting.textContent = "Hi!";
+        authButton.textContent = "Sign In";
+        authButton.href = "signin.html";
+        [brotherPortalLink, adminPortalLink, mentionsLink, pnmDashboardLink, rushDashboardLink, interviewDashboardLink]
+          .forEach(el => el.classList.add("d-none"));
+      }
+    });
+  </script>
+
+  <!-- Shared Auth Loader (for persistence) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="js/jsauth.js"></script>
+
+  <!-- Bootstrap Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

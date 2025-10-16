@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rush Dashboard - AKPsi Portal</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    body { font-family: 'Raleway', sans-serif; background-color: #f6f7f8; }
+    .navbar { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    .card { border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .restricted { color: #c0392b; text-align: center; font-weight: 600; margin-top: 20px; }
+    th, td { vertical-align: middle; }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { background-color: #343a40; color: #f1f1f1; }
+    .sort-icon { margin-left: 5px; font-size: 0.8em; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
+          <li class="nav-item"><a class="nav-link" href="brother-portal.html">Brother Portal</a></li>
+          <li class="nav-item"><a class="nav-link active" href="rush-dashboard.html">Rush Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
+          <li class="nav-item"><a class="btn btn-outline-light ms-2" id="authButton" href="signin.html">Sign In</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container" style="margin-top: 100px;">
+    <div class="card p-4">
+      <h3 class="fw-bold text-center mb-3">Rush Dashboard</h3>
+      <p class="text-center text-muted mb-4">
+        Positive/negative mentions and interview averages per PNM.
+      </p>
+
+      <div id="restrictedNotice" class="restricted d-none">
+        <i class="bi bi-exclamation-triangle"></i> Access denied. Only admins can view this dashboard.
+      </div>
+
+      <div id="dashboardContent" class="d-none">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pnmTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mentions Modal -->
+  <div class="modal fade" id="mentionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Mentions for <span id="modalPNMName"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="mentionsContainer">
+          <p class="text-muted text-center">Loading…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
+      authDomain: "akpsi-web.firebaseapp.com",
+      projectId: "akpsi-web",
+      storageBucket: "akpsi-web-bucket.appspot.com",
+      messagingSenderId: "268414380859",
+      appId: "1:268414380859:web:52cdd93b22d7801f60251e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const greeting = document.getElementById("greeting");
+    const authButton = document.getElementById("authButton");
+    const restrictedNotice = document.getElementById("restrictedNotice");
+    const dashboardContent = document.getElementById("dashboardContent");
+    const pnmTableBody = document.getElementById("pnmTableBody");
+
+    let allRows = [];
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        greeting.textContent = "Hi!";
+        authButton.textContent = "Sign In";
+        authButton.href = "signin.html";
+        restrictedNotice.classList.remove("d-none");
+        dashboardContent.classList.add("d-none");
+        return;
+      }
+      const meDoc = await doc(db, "users", user.uid);
+      const meSnap = await getDoc(meDoc);
+      const role = (meSnap.data()?.role || "").toLowerCase();
+
+      greeting.textContent = `Hi, ${(meSnap.data()?.firstName) || user.email.split("@")[0]}!`;
+      authButton.textContent = "Log Out";
+      authButton.href = "#";
+      authButton.onclick = async () => {
+        await signOut(auth);
+        window.location.href = "signin.html";
+      };
+
+      if (role !== "admin") {
+        restrictedNotice.classList.remove("d-none");
+        dashboardContent.classList.add("d-none");
+        return;
+      }
+      restrictedNotice.classList.add("d-none");
+      dashboardContent.classList.remove("d-none");
+
+      await loadData();
+    });
+
+    async function loadData() {
+      const usersSnap = await getDocs(collection(db, "users"));
+
+      allRows = [];
+
+      pnmTableBody.innerHTML = "";
+
+      usersSnap.forEach((uDoc) => {
+        const u = uDoc.data();
+        if (u.role !== "pnm") return;
+        allRows.push({
+          id: uDoc.id,
+          firstName: u.firstName || "",
+          lastName: u.lastName || "",
+        });
+      });
+
+      render(allRows);
+    }
+
+    function render(rows) {
+      pnmTableBody.innerHTML = "";
+      rows.forEach((d) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.firstName} ${d.lastName}</td>
+          <td><button class="btn btn-sm btn-outline-primary" data-id="${d.id}" data-name="${d.firstName} ${d.lastName}">View</button></td>
+        `;
+        pnmTableBody.appendChild(tr);
+      });
+
+      document.querySelectorAll("button[data-id]").forEach((btn) => {
+        btn.addEventListener("click", () => openModal(btn.dataset.id, btn.dataset.name));
+      });
+    }
+
+    async function openModal(pnmId, name) {
+      document.getElementById("modalPNMName").textContent = name;
+      const container = document.getElementById("mentionsContainer");
+      container.innerHTML = `<p class="text-muted text-center">Loading…</p>`;
+
+      const mentionsSnap = await getDocs(collection(db, "mentions"));
+      const mentions = [];
+
+      mentionsSnap.forEach((doc) => {
+        const d = doc.data();
+        if (d.pnmId === pnmId) {
+          mentions.push(d);
+        }
+      });
+
+      container.innerHTML = mentions.length
+        ? mentions
+            .map(
+              (m) => `
+          <div class="border rounded p-2 mb-2">
+            <div class="d-flex justify-content-between">
+              <strong>${m.brotherName || "Unknown"}</strong>
+              <span class="badge ${
+                m.type === "negative" ? "bg-danger" : "bg-success"
+              }">${(m.type || "").toUpperCase()}</span>
+            </div>
+            <div class="mt-1">${m.comment || ""}</div>
+          </div>`
+            )
+            .join("")
+        : `<p class="text-muted text-center">No mentions yet.</p>`;
+
+      new bootstrap.Modal(document.getElementById("mentionsModal")).show();
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

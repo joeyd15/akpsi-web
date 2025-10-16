@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Change Permissions | AKPsi Portal</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Raleway', sans-serif; background: #f8f9fa; }
+    .card { border-radius: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin-portal.html">Admin Portal</a></li>
+          <li class="nav-item"><a class="nav-link active" href="permissions.html">Change Permissions</a></li>
+          <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
+          <li class="nav-item"><a class="btn btn-outline-light ms-2" id="authButton" href="signin.html">Sign In</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container" style="margin-top:100px;">
+    <div class="card p-4">
+      <h3 class="fw-bold mb-3">Change Permissions</h3>
+      <p class="text-muted">Admins can change user roles (PNM, Brother, Admin).</p>
+      <div class="table-responsive">
+        <table class="table align-middle" id="userTable">
+          <thead class="table-dark">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
+      authDomain: "akpsi-web.firebaseapp.com",
+      projectId: "akpsi-web",
+      storageBucket: "akpsi-web-bucket.appspot.com",
+      messagingSenderId: "268414380859",
+      appId: "1:268414380859:web:52cdd93b22d7801f60251e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const tableBody = document.getElementById("userTableBody");
+    const greeting = document.getElementById("greeting");
+    const authButton = document.getElementById("authButton");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        greeting.textContent = `Hi, ${user.email.split('@')[0]}!`;
+        authButton.textContent = "Log Out";
+        authButton.onclick = () => { signOut(auth); window.location.href = "signin.html"; };
+
+        const usersSnap = await getDocs(collection(db, "users"));
+        tableBody.innerHTML = "";
+        usersSnap.forEach((docSnap) => {
+          const u = docSnap.data();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${u.firstName || ""} ${u.lastName || ""}</td>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>
+              <select class="form-select form-select-sm" data-id="${docSnap.id}">
+                <option value="pnm" ${u.role === "pnm" ? "selected" : ""}>PNM</option>
+                <option value="brother" ${u.role === "brother" ? "selected" : ""}>Brother</option>
+                <option value="admin" ${u.role === "admin" ? "selected" : ""}>Admin</option>
+              </select>
+            </td>`;
+          tableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll("select").forEach(sel => {
+          sel.addEventListener("change", async (e) => {
+            const userId = e.target.getAttribute("data-id");
+            const newRole = e.target.value;
+            await updateDoc(doc(db, "users", userId), { role: newRole });
+            alert("Role updated successfully.");
+          });
+        });
+
+      } else {
+        window.location.href = "signin.html";
+      }
+    });
+  </script>
+</body>
+</html>
