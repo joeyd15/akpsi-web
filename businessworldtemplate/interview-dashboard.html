@@ -30,7 +30,8 @@
 </head>
 <body>
 
-<!-- ✅ Navbar (Full Uniform Ribbon) -->
+<!-- Navbar as is -->
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
@@ -53,7 +54,8 @@
   </div>
 </nav>
 
-<!-- 🧾 Dashboard Content -->
+<!-- Dashboard content as is -->
+
 <main class="container">
   <div class="dashboard-card">
     <h2 class="fw-bold mb-4 text-center">Interview Dashboard</h2>
@@ -79,79 +81,31 @@
   </div>
 </main>
 
-<!-- ✳️ Interview Modal -->
-<div class="modal fade" id="interviewModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form id="interviewForm">
-        <div class="modal-header">
-          <h5 class="modal-title">Submit Interview</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="interviewPnmId" />
-          <div class="mb-3">
-            <label class="form-label">Interest (1–5)</label>
-            <input type="number" min="1" max="5" id="interest" class="form-control" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Energy (1–5)</label>
-            <input type="number" min="1" max="5" id="energy" class="form-control" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Friendliness (1–5)</label>
-            <input type="number" min="1" max="5" id="friendliness" class="form-control" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Comments</label>
-            <textarea id="comments" rows="3" class="form-control" required></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Submit Interview</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+<!-- Modals as is -->
 
-<!-- 📜 View Feedback Modal -->
-<div class="modal fade" id="viewFeedbackModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Interview Feedback</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="feedbackContent"></div>
-    </div>
-  </div>
-</div>
+<!-- Firebase Script with added listenAuth -->
 
-<!-- 🔥 Firebase Script -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  import { getFirestore, collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  import { auth, db, listenAuth } from "./jsauth.js";
+  import { collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
-    authDomain: "akpsi-web.firebaseapp.com",
-    projectId: "akpsi-web",
-    storageBucket: "akpsi-web.firebasestorage.app",
-    messagingSenderId: "268414380859",
-    appId: "1:268414380859:web:52cdd93b22d7801f60251e"
-  };
+  // Ensure persistence of sign-in state and UI update
+  listenAuth({
+    greeting: document.getElementById("greeting"),
+    authButton: document.getElementById("authButton"),
+    brotherPortalLink: document.getElementById("brotherPortalLink"),
+    adminPortalLink: document.getElementById("adminPortalLink"),
+    mentionsLink: document.getElementById("mentionsLink"),
+    pnmDashboardLink: document.getElementById("pnmDashboardLink"),
+    rushDashboardLink: document.getElementById("rushDashboardLink"),
+    interviewDashboardLink: null,
+  });
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
   const pnmTableBody = document.getElementById("pnmTableBody");
-
   let currentUser = null;
   let currentRole = null;
 
-  onAuthStateChanged(auth, async (user) => {
+  auth.onAuthStateChanged(async (user) => {
     if (!user) {
       window.location.href = "signin.html";
       return;
