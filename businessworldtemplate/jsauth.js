@@ -27,7 +27,6 @@ import {
   getDownloadURL,
 } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-storage.js";
 
-
 const firebaseConfig = {
   apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
   authDomain: "akpsi-web.firebaseapp.com",
@@ -37,7 +36,6 @@ const firebaseConfig = {
   appId: "1:268414380859:web:52cdd93b22d7801f60251e",
 };
 
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(e => {
@@ -46,8 +44,6 @@ setPersistence(auth, browserLocalPersistence).catch(e => {
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-
-// your existing listenAuth stays here unchanged
 function listenAuth({
   greeting,
   authButton,
@@ -62,16 +58,23 @@ function listenAuth({
     if (user) {
       let role = "pnm";
       let firstName = user.email.split("@")[0];
+      let canVote = false; // add canVote flag
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           role = data.role || "pnm";
           firstName = data.firstName || firstName;
+          if (role === "brother" || role === "admin") {
+            canVote = true;
+          }
         }
       } catch (err) {
         console.error("Error fetching user profile:", err);
       }
+
+      // Attach canVote property to user object
+      user.canVote = canVote;
 
       if (greeting) greeting.textContent = `Hi, ${firstName}!`;
       if (authButton) {
@@ -107,7 +110,7 @@ function listenAuth({
   });
 }
 
-// New functions for photo upload
+// Your existing photo upload and firestore helper functions unchanged...
 
 async function getPNMList() {
   const snapshot = await getDocs(collection(db, "users"));
@@ -150,9 +153,6 @@ async function uploadPNMPhoto(pnmId, file, progressCallback) {
   });
 }
 
-// -------------------- NEW FIRESTORE HELPERS --------------------
-
-// Add a new mention with professionalism, accomplishments, and quantitative scores
 async function addMention(mentionedUserId, mentionedById, professionalismScore, accomplishmentText, scores) {
   try {
     await addDoc(collection(db, "mentions"), {
@@ -175,7 +175,6 @@ async function addMention(mentionedUserId, mentionedById, professionalismScore, 
   }
 }
 
-// Add a new interview record
 async function addInterview(pledgeId, interviewerId, professionalismScore, accomplishmentText, scores, notes) {
   try {
     await addDoc(collection(db, "interviews"), {
@@ -199,21 +198,17 @@ async function addInterview(pledgeId, interviewerId, professionalismScore, accom
   }
 }
 
-// Fetch all mentions for a specific user
 async function getMentionsByUser(userId) {
   const q = query(collection(db, "mentions"), where("mentionedUserId", "==", userId));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-// Fetch all interviews for a specific pledge
 async function getInterviewsByPledge(pledgeId) {
   const q = query(collection(db, "interviews"), where("pledgeId", "==", pledgeId));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
-
-// -------------------- END NEW HELPERS --------------------
 
 export {
   auth,

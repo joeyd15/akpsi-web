@@ -42,6 +42,11 @@
           <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
 
+          <!-- Added Voting Night button only for brothers -->
+          <li class="nav-item d-none" id="votingNightLink">
+            <a class="nav-link" href="voting.html">Voting Night</a>
+          </li>
+
           <!-- Role-based links -->
           <li class="nav-item d-none" id="brotherPortalLink">
             <a class="nav-link" href="brother-portal.html">Brother Portal</a>
@@ -108,6 +113,7 @@
     const pnmDashboardLink = document.getElementById("pnmDashboardLink");
     const rushDashboardLink = document.getElementById("rushDashboardLink");
     const interviewDashboardLink = document.getElementById("interviewDashboardLink");
+    const votingNightLink = document.getElementById("votingNightLink");
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -139,11 +145,17 @@
           rushDashboardLink.classList.remove("d-none");
           interviewDashboardLink.classList.remove("d-none");
         }
+        // Show Voting Night only for brothers
+        if (role === "brother") {
+          votingNightLink.classList.remove("d-none");
+        } else {
+          votingNightLink.classList.add("d-none");
+        }
       } else {
         greeting.textContent = "Hi!";
         authButton.textContent = "Sign In";
         authButton.href = "signin.html";
-        [brotherPortalLink, adminPortalLink, mentionsLink, pnmDashboardLink, rushDashboardLink, interviewDashboardLink]
+        [brotherPortalLink, adminPortalLink, mentionsLink, pnmDashboardLink, rushDashboardLink, interviewDashboardLink, votingNightLink]
           .forEach(el => el.classList.add("d-none"));
       }
     });

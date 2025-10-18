@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Voting Night | AKPsi Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body { font-family: 'Raleway', sans-serif; background: #f8f9fa; }
+    .vote-card { margin-top: 100px; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);}
+    .btn-vote { min-width: 120px; margin: 0 10px; font-size: 1.2rem; }
+    .summary-chart { max-width: 350px; margin: 2rem auto 0 auto; }
+    .disabled { pointer-events: none; opacity: 0.6; }
+    #pnmPhoto { border-radius: 100px; box-shadow: 0 1px 8px rgba(0,0,0,0.09);}
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+      <button id="authButton" class="btn btn-outline-light btn-sm ms-2">Sign In</button>
+    </div>
+  </nav>
+  <!-- Greeting at top-right -->
+  <div class="container text-end mt-3">
+    <span id="userGreeting" class="fw-bold"></span>
+  </div>
+  <main class="container">
+    <div class="vote-card text-center" id="votingContainer">
+      <div id="slideArea">
+        <img id="pnmPhoto" src="" alt="PNM Photo" width="130" height="130" class="mb-2" />
+        <h3 id="pnmName" class="fw-bold"></h3>
+        <div id="slideNote" class="text-muted mb-3"></div>
+      </div>
+      <div id="voteButtons" class="my-3">
+        <button class="btn btn-success btn-vote" id="voteYes">Yes</button>
+        <button class="btn btn-danger btn-vote" id="voteNo">No</button>
+        <button class="btn btn-secondary btn-vote" id="voteAbstain">Abstain</button>
+      </div>
+      <div class="summary-chart">
+        <canvas id="voteChart"></canvas>
+      </div>
+      <div id="voteStatus" class="mt-3 text-primary fw-semibold"></div>
+    </div>
+  </main>
+  <script type="module" src="./vote.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
