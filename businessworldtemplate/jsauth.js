@@ -14,6 +14,10 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  addDoc,
+  query,
+  where,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 import {
@@ -69,7 +73,6 @@ function listenAuth({
         console.error("Error fetching user profile:", err);
       }
 
-
       if (greeting) greeting.textContent = `Hi, ${firstName}!`;
       if (authButton) {
         authButton.textContent = "Log Out";
@@ -80,7 +83,6 @@ function listenAuth({
           window.location.href = "signin.html";
         };
       }
-
 
       brotherPortalLink?.classList.toggle("d-none", !(role === "brother" || role === "admin"));
       adminPortalLink?.classList.toggle("d-none", role !== "admin");
@@ -148,6 +150,71 @@ async function uploadPNMPhoto(pnmId, file, progressCallback) {
   });
 }
 
+// -------------------- NEW FIRESTORE HELPERS --------------------
+
+// Add a new mention with professionalism, accomplishments, and quantitative scores
+async function addMention(mentionedUserId, mentionedById, professionalismScore, accomplishmentText, scores) {
+  try {
+    await addDoc(collection(db, "mentions"), {
+      mentionedUserId: mentionedUserId,
+      mentionedBy: mentionedById,
+      professionalism: professionalismScore,
+      accomplishments: accomplishmentText,
+      quantitative: {
+        leadership: scores.leadership,
+        initiative: scores.initiative,
+        reliability: scores.reliability,
+        communication: scores.communication,
+        teamwork: scores.teamwork,
+      },
+      timestamp: serverTimestamp(),
+    });
+    console.log("✅ Mention added successfully");
+  } catch (err) {
+    console.error("❌ Error adding mention:", err);
+  }
+}
+
+// Add a new interview record
+async function addInterview(pledgeId, interviewerId, professionalismScore, accomplishmentText, scores, notes) {
+  try {
+    await addDoc(collection(db, "interviews"), {
+      pledgeId: pledgeId,
+      interviewerId: interviewerId,
+      professionalism: professionalismScore,
+      accomplishments: accomplishmentText,
+      quantitative: {
+        leadership: scores.leadership,
+        initiative: scores.initiative,
+        reliability: scores.reliability,
+        communication: scores.communication,
+        teamwork: scores.teamwork,
+      },
+      notes: notes,
+      timestamp: serverTimestamp(),
+    });
+    console.log("✅ Interview added successfully");
+  } catch (err) {
+    console.error("❌ Error adding interview:", err);
+  }
+}
+
+// Fetch all mentions for a specific user
+async function getMentionsByUser(userId) {
+  const q = query(collection(db, "mentions"), where("mentionedUserId", "==", userId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
+// Fetch all interviews for a specific pledge
+async function getInterviewsByPledge(pledgeId) {
+  const q = query(collection(db, "interviews"), where("pledgeId", "==", pledgeId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
+// -------------------- END NEW HELPERS --------------------
+
 export {
   auth,
   db,
@@ -155,5 +222,8 @@ export {
   getPNMList,
   savePhotoToPNM,
   uploadPNMPhoto,
+  addMention,
+  addInterview,
+  getMentionsByUser,
+  getInterviewsByPledge,
 };
-

@@ -67,44 +67,45 @@
         <div class="form-text">For interviews, you can leave this as positive.</div>
       </div>
 
-      <div id="interviewScores" class="mb-3 d-none">
-        <label class="form-label fw-bold">Interview Scores (1–5)</label>
+      <!-- 🔹 UPDATED Quantitative Metrics (Accomplished, Professionalism, Interest, Energy, Friendliness) -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">Quantitative Metrics (1–5)</label>
         <div class="row g-2">
           <div class="col-md-4">
-            <label class="form-label">Friendliness</label>
-            <select id="friendliness" class="form-select">
-              <option value="">Select</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
+            <label class="form-label">Accomplished</label>
+            <select id="accomplished" class="form-select">
+              <option value="">Select</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Energy</label>
-            <select id="energy" class="form-select">
-              <option value="">Select</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
+            <label class="form-label">Professionalism</label>
+            <select id="professionalism" class="form-select">
+              <option value="">Select</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
             </select>
           </div>
           <div class="col-md-4">
             <label class="form-label">Interest</label>
             <select id="interest" class="form-select">
-              <option value="">Select</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
+              <option value="">Select</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+            </select>
+          </div>
+        </div>
+        <div class="row g-2 mt-2">
+          <div class="col-md-6">
+            <label class="form-label">Energy</label>
+            <select id="energy" class="form-select">
+              <option value="">Select</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Friendliness</label>
+            <select id="friendliness" class="form-select">
+              <option value="">Select</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
             </select>
           </div>
         </div>
       </div>
+      <!-- 🔹 END NEW SECTION -->
 
       <div class="mb-3">
         <label class="form-label">Comment / Feedback</label>
@@ -120,21 +121,22 @@
   </div>
 
   <script type="module">
-    import { auth, db } from "./jsauth.js";
+    import { auth, db, addMention, addInterview } from "./jsauth.js";
     import { collection, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
-    const greeting = document.getElementById("greeting");
-    const authButton = document.getElementById("authButton");
     const pnmSelect = document.getElementById("pnmSelect");
     const mentionType = document.getElementById("mentionType");
     const comment = document.getElementById("comment");
     const submitBtn = document.getElementById("submitBtn");
     const statusDiv = document.getElementById("status");
-    const interviewScores = document.getElementById("interviewScores");
-    const friendliness = document.getElementById("friendliness");
-    const energy = document.getElementById("energy");
+
+    // Quantitative metric elements
+    const accomplished = document.getElementById("accomplished");
+    const professionalism = document.getElementById("professionalism");
     const interest = document.getElementById("interest");
+    const energy = document.getElementById("energy");
+    const friendliness = document.getElementById("friendliness");
 
     async function loadPNMs() {
       pnmSelect.innerHTML = '<option>Loading PNMs...</option>';
@@ -171,62 +173,64 @@
       if (user) loadPNMs();
     });
 
-    document.querySelectorAll('input[name="mode"]').forEach(r => {
-      r.addEventListener("change", () => {
-        interviewScores.classList.toggle("d-none", !document.getElementById("modeInterview").checked);
-      });
-    });
-
     submitBtn.addEventListener("click", async () => {
       const pnmId = pnmSelect.value;
       const type = mentionType.value;
       const text = comment.value.trim();
-      const mode = document.querySelector('input[name="mode"]:checked').value;
       const user = auth.currentUser;
 
-      if (!pnmId || pnmId === "") {
-    statusDiv.textContent = "❌ Please select a PNM before submitting.";
-    return;
-  }
-  if (!text || text.length === 0) {
-    statusDiv.textContent = "❌ Please enter a comment before submitting.";
-    return;
-  }
-  if (!user) {
-    statusDiv.textContent = "❌ You must be signed in to submit.";
-    return;
-  }
-
+      if (!pnmId) {
+        statusDiv.textContent = "❌ Please select a PNM before submitting.";
+        return;
+      }
+      if (!text) {
+        statusDiv.textContent = "❌ Please enter a comment before submitting.";
+        return;
+      }
+      if (!user) {
+        statusDiv.textContent = "❌ You must be signed in to submit.";
+        return;
+      }
 
       try {
-        if (mode === "mention") {
-          await addDoc(collection(db, "mentions"), {
-            pnmId,
-            type,
-            comment: text,
-            brotherName: user.email,
-            timestamp: serverTimestamp()
-          });
-          const field = type === "positive" ? "positiveMentions" : "negativeMentions";
-          await updateDoc(doc(db, "users", pnmId), { [field]: increment(1) });
-          statusDiv.textContent = "✅ Mention recorded successfully!";
-        } else {
-          await addDoc(collection(db, "interviews"), {
-            pnmId,
-            interviewerId: user.uid,
-            interviewerName: user.email,
-            friendliness: parseInt(friendliness.value) || 0,
-            energy: parseInt(energy.value) || 0,
-            interest: parseInt(interest.value) || 0,
-            comments: text,
-            timestamp: new Date()
-          });
-          statusDiv.textContent = "✅ Interview submitted successfully!";
-        }
+        // Quantitative scores bundle
+        const scores = {
+          accomplished: parseInt(accomplished.value) || 0,
+          professionalism: parseInt(professionalism.value) || 0,
+          interest: parseInt(interest.value) || 0,
+          energy: parseInt(energy.value) || 0,
+          friendliness: parseInt(friendliness.value) || 0,
+        };
+
+        // Save mention
+        await addMention(pnmId, user.uid, scores.professionalism, "", scores);
+        await addDoc(collection(db, "mentions"), {
+  pnmId,
+  mentionedBy: user.uid,
+  brotherName: user.email,
+  type,
+  comment: text,
+  quantitative: {
+    accomplished: parseInt(accomplished.value) || 0,
+    professionalism: parseInt(professionalism.value) || 0,
+    interest: parseInt(interest.value) || 0,
+    energy: parseInt(energy.value) || 0,
+    friendliness: parseInt(friendliness.value) || 0
+  },
+  timestamp: serverTimestamp()
+});
+
+
+        const field = type === "positive" ? "positiveMentions" : "negativeMentions";
+        await updateDoc(doc(db, "users", pnmId), { [field]: increment(1) });
+
+        statusDiv.textContent = "✅ Mention submitted successfully!";
         comment.value = "";
-        friendliness.value = "";
-        energy.value = "";
+        accomplished.value = "";
+        professionalism.value = "";
         interest.value = "";
+        energy.value = "";
+        friendliness.value = "";
       } catch (e) {
         statusDiv.textContent = "❌ Error submitting. Check console for details.";
         console.error("Error submitting mention/interview:", e);
