@@ -9,31 +9,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
     body { font-family: 'Raleway', sans-serif; background-color: #f8f9fa; }
-    .portal-card {
-      margin-top: 100px;
-      padding: 2rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .admin-btn {
-      width: 100%;
-      margin-bottom: 1rem;
-      font-size: 1.05rem;
-      padding: 0.8rem;
-      border-radius: 10px;
-    }
-    #loadingOverlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 2000;
-      color: #fff;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(2px);
-    }
+    .portal-card { margin-top: 100px; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .admin-btn { width: 100%; margin-bottom: 1rem; font-size: 1.05rem; padding: 0.8rem; border-radius: 10px; }
+    #loadingOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; color: #fff; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
     #loadingOverlay.show { display: flex; }
   </style>
 </head>
@@ -62,7 +40,6 @@
     </div>
   </nav>
 
-
   <!-- Main -->
   <main class="container">
     <div class="portal-card text-center">
@@ -71,24 +48,12 @@
 
       <div class="row justify-content-center mb-4">
         <div class="col-md-6 col-lg-4">
-          <a href="upload-photo.html" class="btn btn-outline-primary admin-btn">
-            <i class="bi bi-cloud-upload"></i> Upload Photos
-          </a>
-          <a href="members.html" class="btn btn-outline-primary admin-btn">
-            <i class="bi bi-people"></i> Manage Members
-          </a>
-          <a href="mentions.html" class="btn btn-outline-primary admin-btn">
-            <i class="bi bi-chat-text"></i> Manage Mentions
-          </a>
-          <a href="interview-dashboard.html" class="btn btn-outline-primary admin-btn">
-            <i class="bi bi-clipboard-data"></i> Manage Interviews
-          </a>
-          <a href="pnm-dashboard.html" class="btn btn-outline-primary admin-btn">
-            <i class="bi bi-person-lines-fill"></i> View PNM Dashboard
-          </a>
-          <a href="rush-dashboard.html" class="btn btn-outline-primary admin-btn">
-            <i class="bi bi-graph-up"></i> View Rush Dashboard
-          </a>
+          <a href="upload-photo.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-cloud-upload"></i> Upload Photos</a>
+          <a href="members.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-people"></i> Manage Members</a>
+          <a href="mentions.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-chat-text"></i> Manage Mentions</a>
+          <a href="interview-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-clipboard-data"></i> Manage Interviews</a>
+          <a href="pnm-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-person-lines-fill"></i> View PNM Dashboard</a>
+          <a href="rush-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-graph-up"></i> View Rush Dashboard</a>
         </div>
       </div>
 
@@ -123,35 +88,31 @@
     const greeting = document.getElementById("greeting");
     const authButton = document.getElementById("authButton");
 
-    listenAuth({
-      greeting,
-      authButton,
-      brotherPortalLink: null,
-      adminPortalLink: null,
-      mentionsLink: null,
-      pnmDashboardLink: null,
-      rushDashboardLink: null,
-      interviewDashboardLink: null,
-    });
+    listenAuth({ greeting, authButton });
+
+    // Helper to safely pull quantitative data
+    function extractQuantitative(d) {
+      const q = d?.quantitative || d || {};
+      return {
+        accomplished: Number(q.accomplished) || 0,
+        professionalism: Number(q.professionalism) || 0,
+        interest: Number(q.interest) || 0,
+        energy: Number(q.energy) || 0,
+        friendliness: Number(q.friendliness) || 0,
+      };
+    }
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "signin.html";
         return;
       }
-
       const snap = await getDoc(doc(db, "users", user.uid));
       if (!snap.exists() || (snap.data().role || "").toLowerCase() !== "admin") {
         alert("Access denied — Admins only");
         window.location.href = "index.html";
         return;
       }
-      greeting.textContent = `Hi, ${user.email.split('@')[0]}!`;
-      authButton.textContent = "Log Out";
-      authButton.onclick = async () => {
-        await signOut(auth);
-        window.location.href = "signin.html";
-      };
     });
 
     function calculateFontSize(count) {
@@ -174,90 +135,73 @@
         for (const pnmDoc of pnmsSnap.docs) {
           const pnm = pnmDoc.data();
           const pnmId = pnmDoc.id;
-          const mSnap = await getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId)));
+
+          // Fetch both mentions and interviews
+          const [mentionsSnap, interviewsSnap] = await Promise.all([
+            getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId))),
+            getDocs(query(collection(db, "interviews"), where("pnmId", "==", pnmId)))
+          ]);
 
           let pos = 0, neg = 0;
           const mentions = [];
           const interviews = [];
-          const friend = [], energy = [], interest = [];
+          let totals = { accomplished: 0, professionalism: 0, interest: 0, energy: 0, friendliness: 0 };
+          let count = 0;
 
-          mSnap.forEach(s => {
-            const d = s.data();
-            const mode = (d.mode || "mention").toLowerCase();
-            const txt = d.comment || "";
-            if (mode === "mention") {
-              if (d.type && d.type.toLowerCase() === "positive") pos++;
-              else if (d.type && d.type.toLowerCase() === "negative") neg++;
-              if (txt) mentions.push(`• ${txt}`);
-            } else if (mode === "interview") {
-              if (Number.isFinite(d.friendliness)) friend.push(Number(d.friendliness));
-              if (Number.isFinite(d.energy)) energy.push(Number(d.energy));
-              if (Number.isFinite(d.interest)) interest.push(Number(d.interest));
-              if (txt) interviews.unshift(`• ${txt}`); // reversed order for "growing up" look
+          // Combine mentions
+          mentionsSnap.forEach(docSnap => {
+            const d = docSnap.data();
+            const q = extractQuantitative(d);
+            if (q.accomplished || q.professionalism || q.interest || q.energy || q.friendliness) {
+              totals.accomplished += q.accomplished;
+              totals.professionalism += q.professionalism;
+              totals.interest += q.interest;
+              totals.energy += q.energy;
+              totals.friendliness += q.friendliness;
+              count++;
             }
+            if (d.type === "positive") pos++;
+            else if (d.type === "negative") neg++;
+            if (d.comment) mentions.push(`• ${d.comment}`);
           });
 
-          const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : "N/A";
-          const friendAvg = avg(friend);
-          const energyAvg = avg(energy);
-          const interestAvg = avg(interest);
+          // Combine interviews
+          interviewsSnap.forEach(docSnap => {
+            const d = docSnap.data();
+            const q = extractQuantitative(d);
+            totals.accomplished += q.accomplished;
+            totals.professionalism += q.professionalism;
+            totals.interest += q.interest;
+            totals.energy += q.energy;
+            totals.friendliness += q.friendliness;
+            count++;
+            if (d.comments) interviews.push(`• ${d.comments}`);
+          });
+
+          const avg = key => (count ? (totals[key] / count).toFixed(2) : "N/A");
 
           const totalLines = mentions.length + interviews.length;
           const fontSize = calculateFontSize(totalLines);
           const lineSpacing = Math.max(12, fontSize + 2);
 
-          let photoHeight = 2.0;
-          let photoWidth = 2.0;
-          if (totalLines > 30) {
-            const scale = Math.max(1.0, 2.0 - (totalLines - 30) * 0.05);
-            photoHeight = scale;
-            photoWidth = scale;
+          const slide = pptx.addSlide();
+          slide.addText(`${pnm.firstName || ""} ${pnm.lastName || ""}`, { x: 0.4, y: 0.15, fontSize: 22, bold: true, color: "003366" });
+          slide.addText(`+ Mentions: ${pos}   - Mentions: ${neg}`, { x: 0.4, y: 0.5, fontSize: 13 });
+          slide.addText(
+            `Accomplished: ${avg("accomplished")}   Professionalism: ${avg("professionalism")}   Interest: ${avg("interest")}   Energy: ${avg("energy")}   Friendliness: ${avg("friendliness")}`,
+            { x: 0.4, y: 0.75, fontSize: 13, color: "222222", w: 9.0 }
+          );
+
+          if (pnm.photoURL) {
+            try {
+              slide.addImage({ path: pnm.photoURL, x: 7.7, y: 0.15, w: 2.0, h: 2.0, sizing: { type: 'contain' } });
+            } catch { }
           }
 
-          const totalSlides = Math.ceil(totalLines / 40);
-          for (let i = 0; i < totalSlides; i++) {
-            const slide = pptx.addSlide();
-            const isCont = i > 0;
-
-            slide.addText(`${pnm.firstName || ""} ${pnm.lastName || ""}${isCont ? " (Continued)" : ""}`,
-              { x: 0.4, y: 0.15, fontSize: 22, bold: true, color: "003366" });
-
-            if (!isCont) {
-              slide.addText(`+ Mentions: ${pos}   - Mentions: ${neg}`, { x: 0.4, y: 0.5, fontSize: 13 });
-              slide.addText(`Friendliness: ${friendAvg}   Energy: ${energyAvg}   Interest: ${interestAvg}`,
-                { x: 0.4, y: 0.75, fontSize: 13, color: "222222", w: 9.0 });
-              if (pnm.photoURL) {
-                try {
-                  slide.addImage({
-                    path: pnm.photoURL,
-                    x: 7.7,
-                    y: 0.15,
-                    w: photoWidth,
-                    h: photoHeight,
-                    sizing: { type: 'contain', w: photoWidth, h: photoHeight }
-                  });
-                } catch { }
-              }
-            }
-
-            slide.addText("Mentions:", { x: 0.4, y: 1.2, fontSize: 15, bold: true });
-
-            const leftItems = mentions.slice(i * 40, (i + 1) * 40);
-            const rightItems = interviews.slice(i * 40, (i + 1) * 40);
-
-            slide.addText(leftItems.join("\n"), {
-              x: 0.4, y: 1.6, w: 4.5, h: 7.2,
-              fontSize: fontSize, color: "333333", lineSpacing: lineSpacing,
-              valign: "top", margin: 2
-            });
-
-            slide.addText("Interview Feedback:", { x: 5.1, y: 2.0, fontSize: 15, bold: true });
-            slide.addText(rightItems.join("\n"), {
-              x: 5.1, y: 2.4, w: 4.5, h: 6.4,
-              fontSize: fontSize, color: "333333", lineSpacing: lineSpacing,
-              valign: "top", margin: 2
-            });
-          }
+          slide.addText("Mentions:", { x: 0.4, y: 1.2, fontSize: 15, bold: true });
+          slide.addText(mentions.join("\n"), { x: 0.4, y: 1.6, w: 4.5, h: 7.2, fontSize, color: "333333", lineSpacing, valign: "top" });
+          slide.addText("Interview Feedback:", { x: 5.1, y: 2.0, fontSize: 15, bold: true });
+          slide.addText(interviews.join("\n"), { x: 5.1, y: 2.4, w: 4.5, h: 6.4, fontSize, color: "333333", lineSpacing, valign: "top" });
         }
 
         await pptx.writeFile({ fileName: "VotingNightSlides.pptx" });
