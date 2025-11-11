@@ -20,7 +20,6 @@
 </head>
 <body>
 
-
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
     <div class="container">
       <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
@@ -42,7 +41,6 @@
     </div>
   </nav>
 
-
   <div class="container" style="margin-top: 80px;">
     <h2 class="fw-bold mb-4 text-center">Members Roster</h2>
     <div class="table-responsive">
@@ -53,6 +51,7 @@
             <th class="sortable" data-key="lastName">Last Name</th>
             <th class="sortable" data-key="gradYear">Grad Year</th>
             <th class="sortable" data-key="role">Role</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody id="membersTableBody"></tbody>
@@ -60,12 +59,10 @@
     </div>
   </div>
 
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
+    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
@@ -77,11 +74,9 @@
       measurementId: "G-HQP1ZKZ575"
     };
 
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
 
     const membersTableBody = document.getElementById("membersTableBody");
     const greeting = document.getElementById("greeting");
@@ -89,18 +84,15 @@
     const brotherPortalLink = document.getElementById("brotherPortalLink");
     const adminPortalLink = document.getElementById("adminPortalLink");
 
-
     let allRows = [];
     let isAdmin = false;
     let currentSort = {key: "lastName", ascending: true};
-
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "signin.html";
         return;
       }
-
 
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
@@ -111,7 +103,6 @@
         firstName = userSnap.data().firstName || user.email;
       }
 
-
       greeting.textContent = `Hi, ${firstName}!`;
       authButton.textContent = "Log Out";
       authButton.href = "#";
@@ -120,17 +111,14 @@
         window.location.href = "signin.html";
       };
 
-
       if (role === "brother" || role === "admin") brotherPortalLink.classList.remove("d-none");
       if (role === "admin") adminPortalLink.classList.remove("d-none");
-
 
       isAdmin = role === "admin";
       await loadAllRows();
       render(allRows);
       setupSort();
     });
-
 
     async function loadAllRows() {
       const querySnapshot = await getDocs(collection(db, "users"));
@@ -143,11 +131,11 @@
           lastName: data.lastName || "",
           gradYear: data.gradYear || "", 
           role: data.role || "",
-          photoURL: data.photoURL || "", // load photo url here
+          brotherStatus: data.brotherStatus || "active",
+          photoURL: data.photoURL || "",
         });
       });
     }
-
 
     function render(rows) {
       membersTableBody.innerHTML = "";
@@ -168,26 +156,68 @@
                     <option value="pnm" ${data.role === "pnm" ? "selected" : ""}>PNM</option>
                     <option value="brother" ${data.role === "brother" ? "selected" : ""}>Brother</option>
                     <option value="admin" ${data.role === "admin" ? "selected" : ""}>Admin</option>
+                    <option value="alumni" ${data.role === "alumni" ? "selected" : ""}>Alumni</option>
+                    <option value="remove">❌ Remove</option>
                   </select>`
                 : data.role
+            }
+          </td>
+          <td>
+            ${
+              isAdmin && data.role === "brother"
+                ? `<select class="form-select form-select-sm status-select" data-uid="${data.uid}">
+                    <option value="active" ${data.brotherStatus === "active" ? "selected" : ""}>Active</option>
+                    <option value="senior" ${data.brotherStatus === "senior" ? "selected" : ""}>Senior</option>
+                    <option value="loa" ${data.brotherStatus === "loa" ? "selected" : ""}>LOA</option>
+                    <option value="blanket" ${data.brotherStatus === "blanket" ? "selected" : ""}>Blanket</option>
+                  </select>`
+                : data.brotherStatus || "-"
             }
           </td>
         `;
         membersTableBody.appendChild(row);
       });
 
-
-      // Attach role update handlers if admin
+      // 🔹 Attach role update handlers if admin
       if (isAdmin) {
         document.querySelectorAll(".role-select").forEach((select) => {
           select.addEventListener("change", async (event) => {
             const newRole = event.target.value;
             const uid = event.target.dataset.uid;
+
             try {
-              await updateDoc(doc(db, "users", uid), { role: newRole });
-              event.target.blur();
-              alert("Role updated successfully.");
-              // update in memory and re-render to reflect (if sorted by role)
+              const userRef = doc(db, "users", uid);
+              const userSnap = await getDoc(userRef);
+              const userData = userSnap.data();
+
+              if (newRole === "remove") {
+  const confirmDelete = confirm(`Permanently remove ${userData.firstName} ${userData.lastName}? This cannot be undone.`);
+  if (confirmDelete) {
+    await deleteDoc(userRef);
+    alert(`${userData.firstName} permanently removed.`);
+    allRows = allRows.filter(u => u.uid !== uid);
+    render(sortRows(allRows, currentSort.key, currentSort.ascending));
+  } else {
+    alert("Action canceled.");
+  }
+  return;
+}
+
+
+              if (newRole === "alumni") {
+  await setDoc(doc(collection(db, "alumni"), uid), userData);
+  await deleteDoc(userRef); // remove from users
+  alert(`${userData.firstName} moved to Alumni.`);
+  allRows = allRows.filter(u => u.uid !== uid);
+  render(sortRows(allRows, currentSort.key, currentSort.ascending));
+  return;
+}
+
+              else {
+                await updateDoc(userRef, { role: newRole });
+                alert("Role updated successfully.");
+              }
+
               const row = allRows.find(u => u.uid === uid);
               if (row) row.role = newRole;
               render(sortRows(allRows, currentSort.key, currentSort.ascending));
@@ -196,9 +226,25 @@
             }
           });
         });
+
+        // 🔹 Attach brother status update handlers if admin
+        document.querySelectorAll(".status-select").forEach((select) => {
+          select.addEventListener("change", async (event) => {
+            const newStatus = event.target.value;
+            const uid = event.target.dataset.uid;
+            try {
+              await updateDoc(doc(db, "users", uid), { brotherStatus: newStatus });
+              alert("Brother status updated successfully.");
+              const row = allRows.find(u => u.uid === uid);
+              if (row) row.brotherStatus = newStatus;
+              render(sortRows(allRows, currentSort.key, currentSort.ascending));
+            } catch (error) {
+              alert("Failed to update status: " + error.message);
+            }
+          });
+        });
       }
     }
-
 
     function setupSort() {
       document.querySelectorAll("th.sortable").forEach(th => {
@@ -215,7 +261,6 @@
         };
       });
     }
-
 
     function sortRows(rows, key, ascending) {
       const sorted = [...rows].sort((a, b) => {
@@ -235,7 +280,6 @@
       return sorted;
     }
   </script>
-
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

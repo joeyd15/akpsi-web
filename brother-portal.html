@@ -76,6 +76,8 @@
     <div class="portal-card">
       <h2 class="fw-bold mb-4 text-center">Brother Portal</h2>
       <p class="text-center text-muted">Access tools and features available to brothers.</p>
+      <p class="text-center fw-semibold" id="brotherStatusLabel"></p>
+
 
       <ul class="list-group">
         <li class="list-group-item"><a href="members.html">👥 View Members</a></li>
@@ -122,6 +124,15 @@
           role = docSnap.data().role || "pnm";
           firstName = docSnap.data().firstName || user.email;
         }
+        // 🔹 Get brother status (Senior, LOA, Blanket, etc.)
+const brotherStatus = docSnap.exists() ? docSnap.data().brotherStatus || "active" : "active";
+const brotherStatusLabel = document.getElementById("brotherStatusLabel");
+
+// 🔹 Show the status if brother or admin
+if (role === "brother" || role === "admin") {
+  brotherStatusLabel.textContent = `Status: ${brotherStatus.charAt(0).toUpperCase() + brotherStatus.slice(1)}`;
+}
+
 
         // ✅ Restrict access
         if (role !== "brother" && role !== "admin") {
