@@ -116,6 +116,15 @@
         <label for="signupPassword" class="form-label">Password</label>
         <input type="password" class="form-control" id="signupPassword" required />
       </div>
+      <div class="mb-3">
+  <label for="roleSelect" class="form-label">Account Type</label>
+  <select id="roleSelect" class="form-select" required>
+    <option value="pnm" selected>Potential New Member</option>
+    <option value="brother">Brother</option>
+    <option value="admin">Admin</option>
+  </select>
+</div>
+
       <button type="submit" class="btn btn-primary w-100">Create Account</button>
     </form>
   </div>
@@ -137,6 +146,7 @@
       const lastName = document.getElementById("lastName").value.trim();
       const gradMonth = parseInt(document.getElementById("gradMonth").value);
       const gradYear = parseInt(document.getElementById("gradYear").value);
+      const role = document.getElementById("roleSelect").value;
       const email = document.getElementById("signupEmail").value.trim();
       const password = document.getElementById("signupPassword").value;
 
@@ -154,7 +164,7 @@
           gradMonth,
           gradYear,
           email,
-          role: "pnm", // default role
+          role: role, 
           createdAt: new Date().toISOString(),
         });
 
