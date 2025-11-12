@@ -60,23 +60,9 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
-      authDomain: "akpsi-web.firebaseapp.com",
-      projectId: "akpsi-web",
-      storageBucket: "akpsi-web.appspot.com",
-      messagingSenderId: "268414380859",
-      appId: "1:268414380859:web:52cdd93b22d7801f60251e",
-      measurementId: "G-HQP1ZKZ575"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    import { auth, db } from "./jsauth.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { collection, getDocs, doc, getDoc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     const membersTableBody = document.getElementById("membersTableBody");
     const greeting = document.getElementById("greeting");
@@ -90,7 +76,7 @@
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        window.location.href = "signin.html";
+        membersTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Please sign in to view members.</td></tr>';
         return;
       }
 
@@ -125,11 +111,11 @@
       allRows = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        allRows.push({ 
+        allRows.push({
           uid: docSnap.id,
-          firstName: data.firstName || "", 
+          firstName: data.firstName || "",
           lastName: data.lastName || "",
-          gradYear: data.gradYear || "", 
+          gradYear: data.gradYear || "",
           role: data.role || "",
           brotherStatus: data.brotherStatus || "active",
           photoURL: data.photoURL || "",
@@ -143,8 +129,7 @@
         const row = document.createElement("tr");
         row.innerHTML = `
           <td style="display:flex; align-items:center; gap: 0.5rem;">
-            <img src="${data.photoURL || 'https://via.placeholder.com/40'}" alt="Photo of ${data.firstName}" 
-              style="width:40px; height:40px; border-radius: 50%; object-fit: cover;" />
+            <img src="${data.photoURL || 'https://via.placeholder.com/40'}" alt="Photo of ${data.firstName}" style="width:40px; height:40px; border-radius: 50%; object-fit: cover;" />
             ${data.firstName}
           </td>
           <td>${data.lastName}</td>
@@ -178,7 +163,7 @@
         membersTableBody.appendChild(row);
       });
 
-      // 🔹 Attach role update handlers if admin
+      // Attach role update handlers if admin
       if (isAdmin) {
         document.querySelectorAll(".role-select").forEach((select) => {
           select.addEventListener("change", async (event) => {
@@ -191,29 +176,26 @@
               const userData = userSnap.data();
 
               if (newRole === "remove") {
-  const confirmDelete = confirm(`Permanently remove ${userData.firstName} ${userData.lastName}? This cannot be undone.`);
-  if (confirmDelete) {
-    await deleteDoc(userRef);
-    alert(`${userData.firstName} permanently removed.`);
-    allRows = allRows.filter(u => u.uid !== uid);
-    render(sortRows(allRows, currentSort.key, currentSort.ascending));
-  } else {
-    alert("Action canceled.");
-  }
-  return;
-}
-
+                const confirmDelete = confirm(`Permanently remove ${userData.firstName} ${userData.lastName}? This cannot be undone.`);
+                if (confirmDelete) {
+                  await deleteDoc(userRef);
+                  alert(`${userData.firstName} permanently removed.`);
+                  allRows = allRows.filter(u => u.uid !== uid);
+                  render(sortRows(allRows, currentSort.key, currentSort.ascending));
+                } else {
+                  alert("Action canceled.");
+                }
+                return;
+              }
 
               if (newRole === "alumni") {
-  await setDoc(doc(collection(db, "alumni"), uid), userData);
-  await deleteDoc(userRef); // remove from users
-  alert(`${userData.firstName} moved to Alumni.`);
-  allRows = allRows.filter(u => u.uid !== uid);
-  render(sortRows(allRows, currentSort.key, currentSort.ascending));
-  return;
-}
-
-              else {
+                await setDoc(doc(collection(db, "alumni"), uid), userData);
+                await deleteDoc(userRef);
+                alert(`${userData.firstName} moved to Alumni.`);
+                allRows = allRows.filter(u => u.uid !== uid);
+                render(sortRows(allRows, currentSort.key, currentSort.ascending));
+                return;
+              } else {
                 await updateDoc(userRef, { role: newRole });
                 alert("Role updated successfully.");
               }
@@ -227,7 +209,7 @@
           });
         });
 
-        // 🔹 Attach brother status update handlers if admin
+        // Attach brother status update handlers
         document.querySelectorAll(".status-select").forEach((select) => {
           select.addEventListener("change", async (event) => {
             const newStatus = event.target.value;

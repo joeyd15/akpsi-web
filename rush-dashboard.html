@@ -84,202 +84,185 @@
   </div>
 
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { auth, db } from "./jsauth.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
-    authDomain: "akpsi-web.firebaseapp.com",
-    projectId: "akpsi-web",
-    storageBucket: "akpsi-web.appspot.com",
-    messagingSenderId: "268414380859",
-    appId: "1:268414380859:web:52cdd93b22d7801f60251e"
-  };
+    const greeting = document.getElementById("greeting");
+    const authButton = document.getElementById("authButton");
+    const restrictedNotice = document.getElementById("restrictedNotice");
+    const dashboardContent = document.getElementById("dashboardContent");
+    const pnmTableBody = document.getElementById("pnmTableBody");
+    let allRows = [];
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  const greeting = document.getElementById("greeting");
-  const authButton = document.getElementById("authButton");
-  const restrictedNotice = document.getElementById("restrictedNotice");
-  const dashboardContent = document.getElementById("dashboardContent");
-  const pnmTableBody = document.getElementById("pnmTableBody");
-  let allRows = [];
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      greeting.textContent = "Hi!";
-      authButton.textContent = "Sign In";
-      authButton.href = "signin.html";
-      restrictedNotice.classList.remove("d-none");
-      dashboardContent.classList.add("d-none");
-      return;
-    }
-
-    const meDoc = await doc(db, "users", user.uid);
-    const meSnap = await getDoc(meDoc);
-    const role = (meSnap.data()?.role || "").toLowerCase();
-
-    greeting.textContent = `Hi, ${(meSnap.data()?.firstName) || user.email.split("@")[0]}!`;
-    authButton.textContent = "Log Out";
-    authButton.href = "#";
-    authButton.onclick = async () => {
-      await signOut(auth);
-      window.location.href = "signin.html";
-    };
-
-    if (role !== "admin") {
-      restrictedNotice.classList.remove("d-none");
-      dashboardContent.classList.add("d-none");
-      return;
-    }
-
-    restrictedNotice.classList.add("d-none");
-    dashboardContent.classList.remove("d-none");
-    await loadData();
-  });
-
-  async function loadData() {
-    const usersSnap = await getDocs(collection(db, "users"));
-    allRows = [];
-    pnmTableBody.innerHTML = "";
-
-    usersSnap.forEach((uDoc) => {
-      const u = uDoc.data();
-      if (u.role !== "pnm") return;
-      allRows.push({
-        id: uDoc.id,
-        firstName: u.firstName || "",
-        lastName: u.lastName || "",
-      });
-    });
-
-    render(allRows);
-  }
-
-  function render(rows) {
-    pnmTableBody.innerHTML = "";
-    rows.forEach((d) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${d.firstName} ${d.lastName}</td>
-        <td><button class="btn btn-sm btn-outline-primary" data-id="${d.id}" data-name="${d.firstName} ${d.lastName}">View</button></td>
-      `;
-      pnmTableBody.appendChild(tr);
-    });
-
-    document.querySelectorAll("button[data-id]").forEach((btn) => {
-      btn.addEventListener("click", () => openModal(btn.dataset.id, btn.dataset.name));
-    });
-  }
-
-  async function openModal(pnmId, name) {
-  document.getElementById("modalPNMName").textContent = name;
-  const container = document.getElementById("mentionsContainer");
-  container.innerHTML = `<p class="text-muted text-center">Loading…</p>`;
-
-  try {
-    // ---- Fetch both collections ----
-    const [mentionsSnap, interviewsSnap] = await Promise.all([
-      getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId))),
-      getDocs(query(collection(db, "interviews"), where("pnmId", "==", pnmId))),
-    ]);
-
-    const mentions = mentionsSnap.docs.map((d) => d.data());
-    const interviews = interviewsSnap.docs.map((d) => d.data());
-
-    const getTime = (x) => {
-      try {
-        return x.timestamp?.toDate?.() || new Date(0);
-      } catch {
-        return new Date(0);
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        greeting.textContent = "Hi!";
+        authButton.textContent = "Sign In";
+        authButton.href = "signin.html";
+        restrictedNotice.classList.remove("d-none");
+        dashboardContent.classList.add("d-none");
+        return;
       }
-    };
-    mentions.sort((a, b) => getTime(b) - getTime(a));
-    interviews.sort((a, b) => getTime(b) - getTime(a));
 
-    let html = "";
+      const meDoc = doc(db, "users", user.uid);
+      const meSnap = await getDoc(meDoc);
+      const role = (meSnap.data()?.role || "").toLowerCase();
 
-    // ✅ MENTIONS SECTION
-    if (mentions.length) {
-      html += `<h6 class="fw-bold mt-2 mb-2">Mentions</h6>`;
-      html += mentions
-        .map((m) => {
-          const date = getTime(m).toLocaleString();
-          const brother = m.brotherName || "Unknown";
-          const text = m.comment || m.comments || "(no comment)";
-          const q = m.quantitative || {};
-          const badge =
-            m.type === "negative" ? "bg-danger" : m.type === "positive" ? "bg-success" : "bg-secondary";
-          const scores = `
-            <div class="small text-muted mt-1">
-              Accomplished: ${q.accomplished ?? "-"}, 
-              Professionalism: ${q.professionalism ?? "-"}, 
-              Interest: ${q.interest ?? "-"}, 
-              Energy: ${q.energy ?? "-"}, 
-              Friendliness: ${q.friendliness ?? "-"}
-            </div>`;
-          return `
-          <div class="border rounded p-2 mb-2">
-            <div class="d-flex justify-content-between">
-              <strong>${brother}</strong>
-              <span class="badge ${badge}">${(m.type || "Unknown").toUpperCase()}</span>
-            </div>
-            <small class="text-muted">${date}</small>
-            <div class="mt-1">${text}</div>
-            ${scores}
-          </div>`;
-        })
-        .join("");
+      greeting.textContent = `Hi, ${meSnap.data()?.firstName || user.email.split("@")[0]}!`;
+      authButton.textContent = "Log Out";
+      authButton.href = "#";
+      authButton.onclick = async () => {
+        await signOut(auth);
+        window.location.href = "signin.html";
+      };
+
+      if (role !== "admin") {
+        restrictedNotice.classList.remove("d-none");
+        dashboardContent.classList.add("d-none");
+        return;
+      }
+
+      restrictedNotice.classList.add("d-none");
+      dashboardContent.classList.remove("d-none");
+      await loadData();
+    });
+
+    async function loadData() {
+      const usersSnap = await getDocs(collection(db, "users"));
+      allRows = [];
+      pnmTableBody.innerHTML = "";
+
+      usersSnap.forEach((uDoc) => {
+        const u = uDoc.data();
+        if (u.role !== "pnm") return;
+        allRows.push({
+          id: uDoc.id,
+          firstName: u.firstName || "",
+          lastName: u.lastName || "",
+        });
+      });
+
+      render(allRows);
     }
 
-    // ✅ INTERVIEWS SECTION
-    if (interviews.length) {
-      html += `<h6 class="fw-bold mt-3 mb-2">Interviews</h6>`;
-      html += interviews
-        .map((i) => {
-          const date = getTime(i).toLocaleString();
-          const interviewer = i.interviewerName || "Unknown";
-          const text = i.comments || i.comment || "(no comment)";
-          const q = i.quantitative || {};
-          const scores = `
-            <div class="small text-muted mt-1">
-              Accomplished: ${q.accomplished ?? "-"}, 
-              Professionalism: ${q.professionalism ?? "-"}, 
-              Interest: ${q.interest ?? "-"}, 
-              Energy: ${q.energy ?? "-"}, 
-              Friendliness: ${q.friendliness ?? "-"}
-            </div>`;
-          return `
-          <div class="border rounded p-2 mb-2">
-            <div class="d-flex justify-content-between">
-              <strong>${interviewer}</strong>
-              <small class="text-muted">${date}</small>
-            </div>
-            <div class="mt-1">${text}</div>
-            ${scores}
-          </div>`;
-        })
-        .join("");
+    function render(rows) {
+      pnmTableBody.innerHTML = "";
+      rows.forEach((d) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.firstName} ${d.lastName}</td>
+          <td><button class="btn btn-sm btn-outline-primary" data-id="${d.id}" data-name="${d.firstName} ${d.lastName}">View</button></td>
+        `;
+        pnmTableBody.appendChild(tr);
+      });
+
+      document.querySelectorAll("button[data-id]").forEach((btn) => {
+        btn.addEventListener("click", () => openModal(btn.dataset.id, btn.dataset.name));
+      });
     }
 
-    if (!mentions.length && !interviews.length) {
-      html = `<p class="text-muted text-center">No mentions or interviews yet.</p>`;
+    async function openModal(pnmId, name) {
+      document.getElementById("modalPNMName").textContent = name;
+      const container = document.getElementById("mentionsContainer");
+      container.innerHTML = `<p class="text-muted text-center">Loading…</p>`;
+
+      try {
+        // Fetch mentions and interviews concurrently
+        const [mentionsSnap, interviewsSnap] = await Promise.all([
+          getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId))),
+          getDocs(query(collection(db, "interviews"), where("pnmId", "==", pnmId))),
+        ]);
+
+        const mentions = mentionsSnap.docs.map((d) => d.data());
+        const interviews = interviewsSnap.docs.map((d) => d.data());
+
+        const getTime = (x) => {
+          try {
+            return x.timestamp?.toDate?.() || new Date(0);
+          } catch {
+            return new Date(0);
+          }
+        };
+        mentions.sort((a, b) => getTime(b) - getTime(a));
+        interviews.sort((a, b) => getTime(b) - getTime(a));
+
+        let html = "";
+
+        if (mentions.length) {
+          html += `<h6 class="fw-bold mt-2 mb-2">Mentions</h6>`;
+          html += mentions
+            .map((m) => {
+              const date = getTime(m).toLocaleString();
+              const brother = m.brotherName || "Unknown";
+              const text = m.comment || m.comments || "(no comment)";
+              const q = m.quantitative || {};
+              const badge =
+                m.type === "negative" ? "bg-danger" : m.type === "positive" ? "bg-success" : "bg-secondary";
+              const scores = `
+                <div class="small text-muted mt-1">
+                  Accomplished: ${q.accomplished ?? "-"}, 
+                  Professionalism: ${q.professionalism ?? "-"}, 
+                  Interest: ${q.interest ?? "-"}, 
+                  Energy: ${q.energy ?? "-"}, 
+                  Friendliness: ${q.friendliness ?? "-"}
+                </div>`;
+              return `
+              <div class="border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between">
+                  <strong>${brother}</strong>
+                  <span class="badge ${badge}">${(m.type || "Unknown").toUpperCase()}</span>
+                </div>
+                <small class="text-muted">${date}</small>
+                <div class="mt-1">${text}</div>
+                ${scores}
+              </div>`;
+            })
+            .join("");
+        }
+
+        if (interviews.length) {
+          html += `<h6 class="fw-bold mt-3 mb-2">Interviews</h6>`;
+          html += interviews
+            .map((i) => {
+              const date = getTime(i).toLocaleString();
+              const interviewer = i.interviewerName || "Unknown";
+              const text = i.comments || i.comment || "(no comment)";
+              const q = i.quantitative || {};
+              const scores = `
+                <div class="small text-muted mt-1">
+                  Accomplished: ${q.accomplished ?? "-"}, 
+                  Professionalism: ${q.professionalism ?? "-"}, 
+                  Interest: ${q.interest ?? "-"}, 
+                  Energy: ${q.energy ?? "-"}, 
+                  Friendliness: ${q.friendliness ?? "-"}
+                </div>`;
+              return `
+              <div class="border rounded p-2 mb-2">
+                <div class="d-flex justify-content-between">
+                  <strong>${interviewer}</strong>
+                  <small class="text-muted">${date}</small>
+                </div>
+                <div class="mt-1">${text}</div>
+                ${scores}
+              </div>`;
+            })
+            .join("");
+        }
+
+        if (!mentions.length && !interviews.length) {
+          html = `<p class="text-muted text-center">No mentions or interviews yet.</p>`;
+        }
+
+        container.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="text-danger text-center">Error loading feedback.</p>`;
+      }
+
+      new bootstrap.Modal(document.getElementById("mentionsModal")).show();
     }
-
-    container.innerHTML = html;
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = `<p class="text-danger text-center">Error loading feedback.</p>`;
-  }
-
-  new bootstrap.Modal(document.getElementById("mentionsModal")).show();
-}
-
-</script>
-
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

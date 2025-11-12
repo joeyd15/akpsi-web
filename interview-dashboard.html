@@ -167,7 +167,7 @@
   const pnmTableBody = document.getElementById("pnmTableBody");
   let currentUser = null;
 
-  // ✅ Sorting logic
+  // Sorting logic
   let currentSortColumn = null;
   let currentSortDirection = "asc";
 
@@ -203,7 +203,6 @@
     th.textContent += currentSortDirection === "asc" ? " ▲" : " ▼";
   }
 
-  // ✅ Expose globally for onclick to work
   window.sortTable = sortTable;
 
   auth.onAuthStateChanged(async (user) => {
