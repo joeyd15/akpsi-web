@@ -7,7 +7,6 @@
   <title>AKPsi Portal</title>
 
   <!-- Google Font -->
-   <!--Hello-->
   <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">
 
   <!-- Bootstrap CSS & Icons -->
@@ -61,6 +60,10 @@
           <li class="nav-item d-none" id="pnmDashboardLink">
             <a class="nav-link" href="pnm-dashboard.html">PNM Dashboard</a>
           </li>
+          <!-- PNM Application button visible only to PNMs -->
+          <li class="nav-item d-none" id="pnmApplicationLink">
+            <a class="nav-link" href="application.html">PNM Application</a>
+          </li>
           <li class="nav-item d-none" id="rushDashboardLink">
             <a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a>
           </li>
@@ -96,7 +99,7 @@
       apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
       authDomain: "akpsi-web.firebaseapp.com",
       projectId: "akpsi-web",
-      storageBucket: "akpsi-web.firebasestorage.app",
+      storageBucket: "akpsi-web.appspot.com",
       messagingSenderId: "268414380859",
       appId: "1:268414380859:web:52cdd93b22d7801f60251e"
     };
@@ -112,6 +115,7 @@
     const adminPortalLink = document.getElementById("adminPortalLink");
     const mentionsLink = document.getElementById("mentionsLink");
     const pnmDashboardLink = document.getElementById("pnmDashboardLink");
+    const pnmApplicationLink = document.getElementById("pnmApplicationLink");
     const rushDashboardLink = document.getElementById("rushDashboardLink");
     const interviewDashboardLink = document.getElementById("interviewDashboardLink");
     const votingNightLink = document.getElementById("votingNightLink");
@@ -136,7 +140,6 @@
         };
 
         // ✅ Role-based visibility
-        //hello
         if (role === "brother" || role === "admin") {
           brotherPortalLink.classList.remove("d-none");
           mentionsLink.classList.remove("d-none");
@@ -153,19 +156,26 @@
         } else {
           votingNightLink.classList.add("d-none");
         }
+        // Show PNM Application only for PNMs
+        if (role === "pnm") {
+          pnmApplicationLink.classList.remove("d-none");
+        } else {
+          pnmApplicationLink.classList.add("d-none");
+        }
       } else {
         greeting.textContent = "Hi!";
         authButton.textContent = "Sign In";
         authButton.href = "signin.html";
-        [brotherPortalLink, adminPortalLink, mentionsLink, pnmDashboardLink, rushDashboardLink, interviewDashboardLink, votingNightLink]
+        [brotherPortalLink, adminPortalLink, mentionsLink, pnmDashboardLink, rushDashboardLink, interviewDashboardLink, votingNightLink, pnmApplicationLink]
           .forEach(el => el.classList.add("d-none"));
       }
     });
   </script>
 
   <!-- Shared Auth Loader (for persistence) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <!-- REMOVED v8 Firebase scripts! -->
+  <!-- <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script> -->
   <script src="js/jsauth.js"></script>
 
   <!-- Bootstrap Bundle -->
