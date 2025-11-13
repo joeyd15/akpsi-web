@@ -178,20 +178,21 @@ async function addMention(mentionedUserId, mentionedById, professionalismScore, 
 async function addInterview(pledgeId, interviewerId, professionalismScore, accomplishmentText, scores, notes) {
   try {
     await addDoc(collection(db, "interviews"), {
-      pledgeId: pledgeId,
-      interviewerId: interviewerId,
-      professionalism: professionalismScore,
-      accomplishments: accomplishmentText,
-      quantitative: {
-        leadership: scores.leadership,
-        initiative: scores.initiative,
-        reliability: scores.reliability,
-        communication: scores.communication,
-        teamwork: scores.teamwork,
-      },
-      notes: notes,
-      timestamp: serverTimestamp(),
-    });
+  pnmId,                // PNM user ID, matching dashboard query
+  interviewerId: user.uid,
+  interviewerName: user.email,
+  comments: text,        // note plural to match your dashboard
+  type: "positive",      // optional, if you need sentiment
+  quantitative: {
+    accomplished: parseInt(accomplished.value) || 0,
+    professionalism: parseInt(professionalism.value) || 0,
+    interest: parseInt(interest.value) || 0,
+    energy: parseInt(energy.value) || 0,
+    friendliness: parseInt(friendliness.value) || 0
+  },
+  timestamp: serverTimestamp()
+});
+
     console.log("✅ Interview added successfully");
   } catch (err) {
     console.error("❌ Error adding interview:", err);

@@ -50,11 +50,14 @@
         <div class="col-md-6 col-lg-4">
           <a href="upload-photo.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-cloud-upload"></i> Upload Photos</a>
           <a href="members.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-people"></i> Manage Members</a>
-          <a href="mentions.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-chat-text"></i> Manage Mentions</a>
+          <a href="mentions.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-chat-text"></i> Submit Mention</a>
           <a href="interview-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-clipboard-data"></i> Manage Interviews</a>
           <a href="pnm-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-person-lines-fill"></i> View PNM Dashboard</a>
+          <a href="interview.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-people"></i> Submit Interview</a>
           <a href="rush-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-graph-up"></i> View Rush Dashboard</a>
           <a href="alumni.html" class="btn btn-outline-secondary admin-btn"><i class="bi bi-person-heart"></i> View Alumni</a>
+          <a href="credits.html" class="btn btn-primary btn-lg w-100 my-2" style="background-color:#003366; border:none;"><i class="bi bi-clipboard-check me-2"></i> Credit Management</a>
+
           <a href="voting.html" class="btn btn-warning admin-btn mt-3"><i class="bi bi-bar-chart-steps"></i> Voting Night</a>
           <a href="voting-admin.html" class="btn btn-danger admin-btn mt-2"><i class="bi bi-toggle2-on"></i> Voting Session Admin</a>
         </div>
@@ -83,138 +86,257 @@
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.10.0/dist/pptxgen.bundle.js"></script>
 
   <script type="module">
-    import { auth, db, listenAuth } from "./jsauth.js";
-    import { getDocs, query, collection, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  import { auth, db, listenAuth } from "./jsauth.js";
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  import { getDocs, query, collection, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    const overlay = document.getElementById("loadingOverlay");
-    const greeting = document.getElementById("greeting");
-    const authButton = document.getElementById("authButton");
+  const overlay = document.getElementById("loadingOverlay");
+  const greeting = document.getElementById("greeting");
+  const authButton = document.getElementById("authButton");
 
-    listenAuth({ greeting, authButton });
+  listenAuth({ greeting, authButton });
 
-    // Helper to safely pull quantitative data
-    function extractQuantitative(d) {
-      const q = d?.quantitative || d || {};
-      return {
-        accomplished: Number(q.accomplished) || 0,
-        professionalism: Number(q.professionalism) || 0,
-        interest: Number(q.interest) || 0,
-        energy: Number(q.energy) || 0,
-        friendliness: Number(q.friendliness) || 0,
-      };
+  function extractQuantitative(d) {
+    const q = d?.quantitative || {};
+    return {
+      accomplished: Number(q.accomplished) || 0,
+      professionalism: Number(q.professionalism) || 0,
+      interest: Number(q.interest) || 0,
+      energy: Number(q.energy) || 0,
+      friendliness: Number(q.friendliness) || 0,
+    };
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "signin.html";
+      return;
     }
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "signin.html";
-        return;
-      }
-      const snap = await getDoc(doc(db, "users", user.uid));
-      if (!snap.exists() || (snap.data().role || "").toLowerCase() !== "admin") {
-        alert("Access denied — Admins only");
-        window.location.href = "index.html";
-        return;
-      }
-    });
-
-    function calculateFontSize(count) {
-      if (count <= 10) return 14;
-      if (count <= 20) return 12;
-      if (count <= 30) return 11;
-      if (count <= 50) return 10;
-      if (count <= 70) return 9;
-      return 8;
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists() || (snap.data().role || "").toLowerCase() !== "admin") {
+      alert("Access denied — Admins only");
+      window.location.href = "index.html";
     }
+  });
 
-    document.getElementById("generatePPT").addEventListener("click", async () => {
-      overlay.classList.add("show");
-      try {
-        const pptx = new PptxGenJS();
-        pptx.layout = "LAYOUT_16x9";
+  function calculateFontSize(count) {
+    if (count <= 10) return 14;
+    if (count <= 20) return 12;
+    if (count <= 30) return 11;
+    if (count <= 50) return 10;
+    if (count <= 70) return 9;
+    return 8;
+  }
 
-        const pnmsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "pnm")));
+  document.getElementById("generatePPT").addEventListener("click", async () => {
+    overlay.classList.add("show");
+    try {
+      const pptx = new PptxGenJS();
+      pptx.layout = "LAYOUT_16x9";
 
-        for (const pnmDoc of pnmsSnap.docs) {
-          const pnm = pnmDoc.data();
-          const pnmId = pnmDoc.id;
+      const pnmsSnap = await getDocs(
+        query(collection(db, "users"), where("role", "==", "pnm"))
+      );
 
-          // Fetch both mentions and interviews
-          const [mentionsSnap, interviewsSnap] = await Promise.all([
-            getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId))),
-            getDocs(query(collection(db, "interviews"), where("pnmId", "==", pnmId)))
-          ]);
+      for (const pnmDoc of pnmsSnap.docs) {
+        const pnm = pnmDoc.data();
+        const pnmId = pnmDoc.id;
 
-          let pos = 0, neg = 0;
-          const mentions = [];
-          const interviews = [];
-          let totals = { accomplished: 0, professionalism: 0, interest: 0, energy: 0, friendliness: 0 };
-          let count = 0;
+        // Fetch mentions & interviews
+        const [mentionsSnap, interviewsSnap] = await Promise.all([
+          getDocs(query(collection(db, "mentions"), where("pnmId", "==", pnmId))),
+          getDocs(query(collection(db, "interviews"), where("pnmId", "==", pnmId))),
+        ]);
 
-          // Combine mentions
-          mentionsSnap.forEach(docSnap => {
-            const d = docSnap.data();
-            const q = extractQuantitative(d);
-            if (q.accomplished || q.professionalism || q.interest || q.energy || q.friendliness) {
-              totals.accomplished += q.accomplished;
-              totals.professionalism += q.professionalism;
-              totals.interest += q.interest;
-              totals.energy += q.energy;
-              totals.friendliness += q.friendliness;
-              count++;
-            }
-            if (d.type === "positive") pos++;
-            else if (d.type === "negative") neg++;
-            if (d.comment) mentions.push(`• ${d.comment}`);
-          });
+        // Count & store comments
+        let pos = 0,
+          neg = 0;
 
-          // Combine interviews
-          interviewsSnap.forEach(docSnap => {
-            const d = docSnap.data();
-            const q = extractQuantitative(d);
-            totals.accomplished += q.accomplished;
-            totals.professionalism += q.professionalism;
-            totals.interest += q.interest;
-            totals.energy += q.energy;
-            totals.friendliness += q.friendliness;
-            count++;
-            if (d.comments) interviews.push(`• ${d.comments}`);
-          });
+        const mentionLines = [];
+        const interviewLines = [];
 
-          const avg = key => (count ? (totals[key] / count).toFixed(2) : "N/A");
+        // Quant totals
+        const totalsMentions = {
+          accomplished: 0,
+          professionalism: 0,
+          interest: 0,
+          energy: 0,
+          friendliness: 0,
+        };
+        let countMentions = 0;
 
-          const totalLines = mentions.length + interviews.length;
-          const fontSize = calculateFontSize(totalLines);
-          const lineSpacing = Math.max(12, fontSize + 2);
+        const totalsInterviews = {
+          accomplished: 0,
+          professionalism: 0,
+          interest: 0,
+          energy: 0,
+          friendliness: 0,
+        };
+        let countInterviews = 0;
 
-          const slide = pptx.addSlide();
-          slide.addText(`${pnm.firstName || ""} ${pnm.lastName || ""}`, { x: 0.4, y: 0.15, fontSize: 22, bold: true, color: "003366" });
-          slide.addText(`+ Mentions: ${pos}   - Mentions: ${neg}`, { x: 0.4, y: 0.5, fontSize: 13 });
-          slide.addText(
-            `Accomplished: ${avg("accomplished")}   Professionalism: ${avg("professionalism")}   Interest: ${avg("interest")}   Energy: ${avg("energy")}   Friendliness: ${avg("friendliness")}`,
-            { x: 0.4, y: 0.75, fontSize: 13, color: "222222", w: 9.0 }
-          );
+        // Process Mentions
+        mentionsSnap.forEach((docSnap) => {
+          const d = docSnap.data();
+          const q = extractQuantitative(d);
 
-          if (pnm.photoURL) {
-            try {
-              slide.addImage({ path: pnm.photoURL, x: 7.7, y: 0.15, w: 2.0, h: 2.0, sizing: { type: 'contain' } });
-            } catch { }
+          if (
+            q.accomplished ||
+            q.professionalism ||
+            q.interest ||
+            q.energy ||
+            q.friendliness
+          ) {
+            totalsMentions.accomplished += q.accomplished;
+            totalsMentions.professionalism += q.professionalism;
+            totalsMentions.interest += q.interest;
+            totalsMentions.energy += q.energy;
+            totalsMentions.friendliness += q.friendliness;
+            countMentions++;
           }
 
-          slide.addText("Mentions:", { x: 0.4, y: 1.2, fontSize: 15, bold: true });
-          slide.addText(mentions.join("\n"), { x: 0.4, y: 1.6, w: 4.5, h: 7.2, fontSize, color: "333333", lineSpacing, valign: "top" });
-          slide.addText("Interview Feedback:", { x: 5.1, y: 2.0, fontSize: 15, bold: true });
-          slide.addText(interviews.join("\n"), { x: 5.1, y: 2.4, w: 4.5, h: 6.4, fontSize, color: "333333", lineSpacing, valign: "top" });
+          if ((d.type || "").toLowerCase() === "positive") pos++;
+          else if ((d.type || "").toLowerCase() === "negative") neg++;
+
+          if (d.comment) {
+            const color =
+              (d.type || "").toLowerCase() === "positive"
+                ? "0A7E07"
+                : (d.type || "").toLowerCase() === "negative"
+                ? "CC0000"
+                : "333333";
+
+            mentionLines.push({
+              text: `• ${d.comment}\n`,
+              options: { color, fontSize: 0 },
+            });
+          }
+        });
+
+        // Process Interviews
+        interviewsSnap.forEach((docSnap) => {
+          const d = docSnap.data();
+          const q = extractQuantitative(d);
+
+          totalsInterviews.accomplished += q.accomplished;
+          totalsInterviews.professionalism += q.professionalism;
+          totalsInterviews.interest += q.interest;
+          totalsInterviews.energy += q.energy;
+          totalsInterviews.friendliness += q.friendliness;
+          countInterviews++;
+
+          const commentText = d.comments || d.comment || "";
+
+          if (commentText) {
+            interviewLines.push({
+              text: `• ${commentText}\n`,
+              options: { color: "333333", fontSize: 0 },
+            });
+          }
+        });
+
+        const avgM = (key) =>
+          countMentions
+            ? (totalsMentions[key] / countMentions).toFixed(2)
+            : "N/A";
+
+        const avgI = (key) =>
+          countInterviews
+            ? (totalsInterviews[key] / countInterviews).toFixed(2)
+            : "N/A";
+
+        // Font scaling
+        const totalLines = mentionLines.length + interviewLines.length;
+        const fontSize = calculateFontSize(totalLines);
+        const lineSpacing = Math.max(12, fontSize + 2);
+
+        mentionLines.forEach((l) => (l.options.fontSize = fontSize));
+        interviewLines.forEach((l) => (l.options.fontSize = fontSize));
+
+        // --- SLIDE CREATION ---
+        const slide = pptx.addSlide();
+        slide.addText(
+          `${pnm.firstName || ""} ${pnm.lastName || ""}`,
+          { x: 0.4, y: 0.15, fontSize: 22, bold: true, color: "003366" }
+        );
+
+        slide.addText(
+          [
+            { text: "+ Mentions: ", options: { fontSize: 13 } },
+            { text: String(pos), options: { color: "0A7E07", bold: true, fontSize: 13 } },
+            { text: "    - Mentions: ", options: { fontSize: 13 } },
+            { text: String(neg), options: { color: "CC0000", bold: true, fontSize: 13 } },
+          ],
+          { x: 0.4, y: 0.5, w: 6.5 }
+        );
+
+        slide.addText(
+          `Mentions — Accomp: ${avgM("accomplished")}  Prof: ${avgM("professionalism")}  Interest: ${avgM("interest")}  Energy: ${avgM("energy")}  Friendly: ${avgM("friendliness")}`,
+          { x: 0.4, y: 0.78, fontSize: 13, color: "222222", w: 9.5 }
+        );
+
+        slide.addText(
+          `Interview — Accomp: ${avgI("accomplished")}  Prof: ${avgI("professionalism")}  Interest: ${avgI("interest")}  Energy: ${avgI("energy")}  Friendly: ${avgI("friendliness")}`,
+          { x: 0.4, y: 1.05, fontSize: 13, color: "222222", w: 9.5 }
+        );
+
+        if (pnm.photoURL) {
+          try {
+            slide.addImage({
+              path: pnm.photoURL,
+              x: 7.7,
+              y: 0.15,
+              w: 2.0,
+              h: 2.0,
+              sizing: { type: "contain" },
+            });
+          } catch {}
         }
 
-        await pptx.writeFile({ fileName: "VotingNightSlides.pptx" });
-        alert("✅ PowerPoint generated successfully!");
-      } catch (err) {
-        console.error(err);
-        alert("❌ Failed to generate PowerPoint. Check console for details.");
-      } finally {
-        overlay.classList.remove("show");
+        slide.addText("Mentions:", {
+          x: 0.4,
+          y: 1.35,
+          fontSize: 15,
+          bold: true,
+        });
+
+        if (mentionLines.length)
+          slide.addText(mentionLines, {
+            x: 0.4,
+            y: 1.7,
+            w: 4.5,
+            h: 7,
+            valign: "top",
+            lineSpacing,
+          });
+
+        slide.addText("Interview Feedback:", {
+          x: 5.1,
+          y: 1.35,
+          fontSize: 15,
+          bold: true,
+        });
+
+        if (interviewLines.length)
+          slide.addText(interviewLines, {
+            x: 5.1,
+            y: 1.7,
+            w: 4.5,
+            h: 7,
+            valign: "top",
+            lineSpacing,
+          });
       }
-    });
-  </script>
+
+      await pptx.writeFile({ fileName: "VotingNightSlides.pptx" });
+      alert("✅ PowerPoint generated successfully!");
+    } catch (err) {
+      console.error("ERROR generating PPT:", err);
+      alert("❌ PowerPoint failed — check console.");
+    } finally {
+      overlay.classList.remove("show");
+    }
+  });
+</script>
+
 </body>
 </html>

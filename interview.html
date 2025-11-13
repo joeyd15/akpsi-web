@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mentions | AKPsi Portal</title>
+  <title>Interviews | AKPsi Portal</title>
   <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
@@ -25,8 +25,9 @@
           <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
           <li class="nav-item"><a class="nav-link" href="brother-portal.html">Brother Portal</a></li>
-          <li class="nav-item"><a class="nav-link active" href="#">Mentions</a></li>
+          <li class="nav-item"><a class="nav-link" href="mentions.html">Mentions</a></li>
           <li class="nav-item"><a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link active" href="#">Interviews</a></li>
           <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
           <li class="nav-item"><button id="authButton" class="btn btn-outline-light btn-sm ms-2">Sign In</button></li>
         </ul>
@@ -35,22 +36,14 @@
   </nav>
 
   <div class="container" style="margin-top:100px;">
-    <div class="card p-4" id="mentionCard">
-      <h3 class="fw-bold mb-3 text-center">Submit a Mention</h3>
+    <div class="card p-4 d-none" id="interviewCard">
+      <h3 class="fw-bold mb-3 text-center">Submit an Interview</h3>
       <p class="text-muted text-center">Your name is stored for credit tracking.</p>
 
       <div class="mb-3">
         <label for="pnmSelect" class="form-label">Select PNM</label>
         <select id="pnmSelect" class="form-select">
           <option value="">Loading PNMs...</option>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">Type of Mention</label>
-        <select id="mentionType" class="form-select">
-          <option value="positive">Positive</option>
-          <option value="negative">Negative</option>
         </select>
       </div>
 
@@ -93,14 +86,13 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Comment / Feedback</label>
-        <textarea id="comment" class="form-control" rows="3" placeholder="Write your comment here..."></textarea>
+        <label class="form-label">Comments</label>
+        <textarea id="comments" class="form-control" rows="3" placeholder="Write your comments..."></textarea>
       </div>
 
       <button id="submitBtn" class="btn btn-primary w-100">
         <i class="bi bi-send"></i> Submit
       </button>
-
       <div id="status" class="mt-3 text-center text-muted"></div>
     </div>
     <div class="restricted d-none" id="restrictedNotice">
@@ -111,22 +103,19 @@
 
   <script type="module">
     import { auth, db } from "./jsauth.js";
-    import { collection, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { collection, getDocs, addDoc, doc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
     const pnmSelect = document.getElementById("pnmSelect");
-    const mentionType = document.getElementById("mentionType");
-    const comment = document.getElementById("comment");
+    const comments = document.getElementById("comments");
     const submitBtn = document.getElementById("submitBtn");
     const statusDiv = document.getElementById("status");
-
     const accomplished = document.getElementById("accomplished");
     const professionalism = document.getElementById("professionalism");
     const interest = document.getElementById("interest");
     const energy = document.getElementById("energy");
     const friendliness = document.getElementById("friendliness");
-
-    const mentionCard = document.getElementById("mentionCard");
+    const interviewCard = document.getElementById("interviewCard");
     const restrictedNotice = document.getElementById("restrictedNotice");
 
     async function loadPNMs() {
@@ -167,23 +156,22 @@
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const role = (userDoc.data()?.role || "").toLowerCase();
         if (role === "brother" || role === "admin") {
-          mentionCard.classList.remove("d-none");
+          interviewCard.classList.remove("d-none");
           restrictedNotice.classList.add("d-none");
           loadPNMs();
         } else {
-          mentionCard.classList.add("d-none");
+          interviewCard.classList.add("d-none");
           restrictedNotice.classList.remove("d-none");
         }
       } else {
-        mentionCard.classList.add("d-none");
+        interviewCard.classList.add("d-none");
         restrictedNotice.classList.remove("d-none");
       }
     });
 
     submitBtn.addEventListener("click", async () => {
       const pnmId = pnmSelect.value;
-      const type = mentionType.value;
-      const text = comment.value.trim();
+      const text = comments.value.trim();
       const user = auth.currentUser;
 
       if (!pnmId) {
@@ -191,7 +179,7 @@
         return;
       }
       if (!text) {
-        statusDiv.textContent = "❌ Please enter a comment before submitting.";
+        statusDiv.textContent = "❌ Please enter comments before submitting.";
         return;
       }
       if (!user) {
@@ -200,11 +188,10 @@
       }
 
       try {
-        await addDoc(collection(db, "mentions"), {
+        await addDoc(collection(db, "interviews"), {
           pnmId,
-          brotherName: user.email,
-          type,
-          comment: text,
+          interviewerId: user.uid,
+          interviewerName: user.email,
           quantitative: {
             accomplished: parseInt(accomplished.value) || 0,
             professionalism: parseInt(professionalism.value) || 0,
@@ -212,14 +199,12 @@
             energy: parseInt(energy.value) || 0,
             friendliness: parseInt(friendliness.value) || 0
           },
+          comments: text,
           timestamp: serverTimestamp()
         });
 
-        const field = type === "positive" ? "positiveMentions" : "negativeMentions";
-        await updateDoc(doc(db, "users", pnmId), { [field]: increment(1) });
-
-        statusDiv.textContent = "✅ Mention submitted successfully!";
-        comment.value = "";
+        statusDiv.textContent = "✅ Interview submitted successfully!";
+        comments.value = "";
         accomplished.value = "";
         professionalism.value = "";
         interest.value = "";
@@ -227,7 +212,7 @@
         friendliness.value = "";
       } catch (e) {
         statusDiv.textContent = "❌ Error submitting. Check console for details.";
-        console.error("Error submitting mention:", e);
+        console.error("Error submitting interview:", e);
       }
     });
   </script>
