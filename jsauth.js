@@ -31,7 +31,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
   authDomain: "akpsi-web.firebaseapp.com",
   projectId: "akpsi-web",
-  storageBucket: "akpsi-web.appspot.com",
+  storageBucket: "akpsi-web.firebasestorage.app",
   messagingSenderId: "268414380859",
   appId: "1:268414380859:web:52cdd93b22d7801f60251e",
 };

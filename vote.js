@@ -214,9 +214,9 @@ onAuthStateChanged(auth, async (user) => {
       enableVoting();
       if (userVote) {
         voteStatus.textContent = `Vote submitted: ${userVote.toUpperCase()}`;
-        voteYesBtn.disabled = true;
-        voteNoBtn.disabled = true;
-        voteAbstainBtn.disabled = true;
+        voteYesBtn.disabled = false;
+        voteNoBtn.disabled = false;
+        voteAbstainBtn.disabled = false;
       } else {
         voteYesBtn.disabled = false;
         voteNoBtn.disabled = false;
@@ -227,26 +227,40 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 
-// Submit vote with single vote enforcement and safe first vote initialization
-async function submitVote(vote) {
-  if (!(votingOpen && currentPNM && userRole && userRole !== "pnm")) return;
+// Submit vote with revote support (adjust counts)
+async function submitVote(newVote) {
+  if (!(votingOpen && currentPNM && userRole !== "pnm")) return;
 
-  const userVoteSnap = await getDoc(doc(db, `voting-sessions/${sessionId}/userVotes`, `${currentPNM}_${userId}`));
-  if (userVoteSnap.exists()) {
-    voteStatus.textContent = "You have already submitted your vote for this PNM.";
-    return;
+  const voteId = `${currentPNM}_${userId}`;
+  const userVoteRef = doc(db, `voting-sessions/${sessionId}/userVotes`, voteId);
+  const votesRef = doc(db, `voting-sessions/${sessionId}/votes`, currentPNM);
+
+  // Fetch current aggregate votes
+  const votesSnap = await getDoc(votesRef);
+  let votesData = votesSnap.exists()
+    ? votesSnap.data()
+    : { yes: 0, no: 0, abstain: 0 };
+
+  // Fetch the user's previous vote (if any)
+  const userVoteSnap = await getDoc(userVoteRef);
+  const oldVote = userVoteSnap.exists() ? userVoteSnap.data().vote : null;
+
+  // If changing vote, decrement old vote count
+  if (oldVote && oldVote !== newVote) {
+    votesData[oldVote] = Math.max(0, (votesData[oldVote] || 0) - 1);
   }
 
-  const votesDocRef = doc(db, `voting-sessions/${sessionId}/votes`, currentPNM);
-  const votesSnap = await getDoc(votesDocRef);
-  if (!votesSnap.exists()) {
-    await setDoc(votesDocRef, { yes: 0, no: 0, abstain: 0 });
-  }
+  // Increment new vote
+  votesData[newVote] = (votesData[newVote] || 0) + 1;
 
-  await setDoc(doc(db, `voting-sessions/${sessionId}/userVotes`, `${currentPNM}_${userId}`), { vote }, { merge: true }).catch(console.error);
-  await updateDoc(votesDocRef, { [vote]: increment(1) }).catch(console.error);
+  // Save updated totals
+  await setDoc(votesRef, votesData, { merge: true });
 
-  voteStatus.textContent = `Vote submitted: ${vote.toUpperCase()}`;
+  // Save user's vote
+  await setDoc(userVoteRef, { vote: newVote }, { merge: true });
+
+  // Update UI
+  voteStatus.textContent = `Vote submitted: ${newVote.toUpperCase()}`;
   voteYesBtn.disabled = true;
   voteNoBtn.disabled = true;
   voteAbstainBtn.disabled = true;
