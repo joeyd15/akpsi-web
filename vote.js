@@ -1,7 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getFirestore, doc, getDoc, onSnapshot, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-
+import { 
+  getFirestore, doc, getDoc, onSnapshot, updateDoc, setDoc 
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+import { 
+  getAuth, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
@@ -11,29 +14,32 @@ const firebaseConfig = {
   messagingSenderId: "268414380859",
   appId: "1:268414380859:web:52cdd93b22d7801f60251e"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-
+// UI elements
 let userRole = "pnm";
 let userId = null;
 let sessionId = "current";
 
-
 const voteYesBtn = document.getElementById("voteYes");
 const voteNoBtn = document.getElementById("voteNo");
 const voteAbstainBtn = document.getElementById("voteAbstain");
+const revoteBtn = document.getElementById("revoteBtn");
+
 const pnmName = document.getElementById("pnmName");
 const pnmPhoto = document.getElementById("pnmPhoto");
 const slideNote = document.getElementById("slideNote");
 const voteStatus = document.getElementById("voteStatus");
+
 const userGreeting = document.getElementById("userGreeting");
 const authButton = document.getElementById("authButton");
+
 const voteButtons = document.getElementById("voteButtons");
 
-
-// Admin-only result summary element
+// ADMIN chart setup
 let resultSummary = document.getElementById('resultSummary');
 if (!resultSummary) {
   resultSummary = document.createElement('div');
@@ -42,15 +48,13 @@ if (!resultSummary) {
   document.querySelector('.summary-chart').appendChild(resultSummary);
 }
 
-
 let chart = null;
-function updateChart({yes=0,no=0,abstain=0}, showChart=true) {
+function updateChart({yes=0, no=0, abstain=0}, showChart=true) {
   if (!showChart) {
     document.querySelector('.summary-chart').style.display = 'none';
     return;
   }
   document.querySelector('.summary-chart').style.display = '';
-
 
   if (!chart) {
     const ctx = document.getElementById('voteChart').getContext('2d');
@@ -70,203 +74,187 @@ function updateChart({yes=0,no=0,abstain=0}, showChart=true) {
     chart.update();
   }
 
-
   const total = yes + no + abstain;
+
   if (total === 0) {
     resultSummary.textContent = "No votes cast yet.";
   } else {
-    const yesPct = ((yes / total) * 100).toFixed(1);
-    const noPct = ((no / total) * 100).toFixed(1);
-    const abstainPct = ((abstain / total) * 100).toFixed(1);
     resultSummary.innerHTML = `
-      <span style="color:#198754">Yes:</span> ${yes} (${yesPct}%)&nbsp;&nbsp;
-      <span style="color:#dc3545">No:</span> ${no} (${noPct}%)&nbsp;&nbsp;
-      <span style="color:#adb5bd">Abstain:</span> ${abstain} (${abstainPct}%)
+      <span style="color:#198754">Yes:</span> ${yes} (${((yes/total)*100).toFixed(1)}%)&nbsp;&nbsp;
+      <span style="color:#dc3545">No:</span> ${no} (${((no/total)*100).toFixed(1)}%)&nbsp;&nbsp;
+      <span style="color:#adb5bd">Abstain:</span> ${abstain} (${((abstain/total)*100).toFixed(1)}%)
       <br><small>Total votes: ${total}</small>
     `;
   }
 }
-
 
 function disableVoting(msg) {
   voteYesBtn.disabled = true;
   voteNoBtn.disabled = true;
   voteAbstainBtn.disabled = true;
   voteButtons.classList.add('disabled');
-  voteStatus.textContent = msg || "Voting is currently closed.";
+  revoteBtn.style.display = "none";
+  voteStatus.textContent = msg;
 }
-
 
 function enableVoting() {
   voteYesBtn.disabled = false;
   voteNoBtn.disabled = false;
   voteAbstainBtn.disabled = false;
   voteButtons.classList.remove('disabled');
-  voteStatus.textContent = "Voting is open. Please submit your vote.";
+  voteStatus.textContent = "";
+  revoteBtn.style.display = "none";
 }
-
 
 let currentPNM = null;
 let votingOpen = false;
 let userVote = null;
 
-
-// Authentication state listener with safe redirection
+// AUTH
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    userGreeting.textContent = '';
-    authButton.textContent = 'Sign In';
-    authButton.onclick = () => window.location.href = "signin.html";
-    if (!window.location.pathname.endsWith('signin.html')) {
-      setTimeout(() => {
-        if (!auth.currentUser) {
-          window.location.href = "signin.html";
-        }
-      }, 100);
-    }
+    window.location.href = "signin.html";
     return;
   }
-
 
   userId = user.uid;
   const userDoc = await getDoc(doc(db, "users", userId));
   userRole = userDoc.exists() ? (userDoc.data().role || "pnm") : "pnm";
 
-
-  let greetingText = `Signed in as: ${user.email}`;
-  if (userDoc.exists() && userDoc.data().firstName) {
-    greetingText = `Signed in as: ${userDoc.data().firstName} (${userRole})`;
-  }
-  userGreeting.textContent = greetingText;
-
-
-  authButton.textContent = 'Log Out';
+  userGreeting.textContent = `Signed in as: ${user.email}`;
+  authButton.textContent = "Log Out";
   authButton.onclick = async () => {
     await signOut(auth);
-    userGreeting.textContent = '';
-    authButton.textContent = 'Sign In';
     window.location.href = "signin.html";
   };
 
-
   if (userRole === "pnm") {
     disableVoting("Access denied. Only Brothers & Admins may vote.");
-    updateChart({ yes: 0, no: 0, abstain: 0 }, false);
-    resultSummary.style.display = 'none';
+    updateChart({}, false);
     return;
   }
 
-
+  // Listen for session
   onSnapshot(doc(db, "voting-sessions", sessionId), async (snap) => {
     if (!snap.exists()) {
-      disableVoting("No voting session is currently active.");
-      pnmName.textContent = "";
-      pnmPhoto.src = "";
-      slideNote.textContent = "";
-      updateChart({ yes: 0, no: 0, abstain: 0 }, userRole === 'admin');
-      resultSummary.style.display = 'none';
+      disableVoting("No active voting session.");
       return;
     }
+
     const { activePNM, votingOpen: vo } = snap.data();
     votingOpen = vo;
-    if (activePNM) {
-      const pnmSnap = await getDoc(doc(db, "users", activePNM));
-      if (pnmSnap.exists()) {
-        const d = pnmSnap.data();
-        pnmName.textContent = `${d.firstName || ""} ${d.lastName || ""}`;
-        pnmPhoto.src = d.photoURL || "https://placehold.co/130x130";
-        slideNote.textContent = d.year ? `Year: ${d.year}` : "";
-        currentPNM = activePNM;
-      } else {
-        pnmName.textContent = "";
-        pnmPhoto.src = "";
-        slideNote.textContent = "";
-        currentPNM = null;
-      }
-    } else {
-      pnmName.textContent = "No PNM selected.";
-      pnmPhoto.src = "";
-      slideNote.textContent = "";
-      currentPNM = null;
+
+    if (!activePNM) {
+      disableVoting("No PNM selected.");
+      return;
     }
 
+    currentPNM = activePNM;
 
-    if (currentPNM) {
-      onSnapshot(doc(db, `voting-sessions/${sessionId}/votes`, currentPNM), (voteSnap) => {
-        const data = voteSnap.exists() ? voteSnap.data() : {};
-        console.log("Votes data snapshot:", data, "For PNM:", currentPNM);
-        updateChart({
-          yes: data.yes || 0,
-          no: data.no || 0,
-          abstain: data.abstain || 0,
-        }, userRole === 'admin');
-        resultSummary.style.display = userRole === 'admin' ? '' : 'none';
-      });
-      const userVoteSnap = await getDoc(doc(db, `voting-sessions/${sessionId}/userVotes`, `${currentPNM}_${userId}`));
-      userVote = userVoteSnap.exists() ? userVoteSnap.data().vote : null;
-    }
+    // load PNM
+    const pnmSnap = await getDoc(doc(db, "users", activePNM));
+    const d = pnmSnap.data();
+    pnmName.textContent = `${d.firstName || ""} ${d.lastName || ""}`;
+    pnmPhoto.src = d.photoURL || "https://placehold.co/130x130";
+    slideNote.textContent = d.year ? `Year: ${d.year}` : "";
 
+    // load vote totals
+    onSnapshot(doc(db, `voting-sessions/${sessionId}/votes`, activePNM), (voteSnap) => {
+      const data = voteSnap.exists() ? voteSnap.data() : { yes:0, no:0, abstain:0 };
+      updateChart(data, userRole === "admin");
+      resultSummary.style.display = userRole === "admin" ? "" : "none";
+    });
+
+    // load user vote
+    const userVoteSnap = await getDoc(doc(db, `voting-sessions/${sessionId}/userVotes`, `${currentPNM}_${userId}`));
+    userVote = userVoteSnap.exists() ? userVoteSnap.data().vote : null;
 
     if (!votingOpen) {
       disableVoting("Voting not opened by admin.");
-      updateChart({ yes: 0, no: 0, abstain: 0 }, userRole === 'admin');
+      return;
+    }
+
+    if (userVote) {
+      voteYesBtn.disabled = true;
+      voteNoBtn.disabled = true;
+      voteAbstainBtn.disabled = true;
+      revoteBtn.style.display = "inline-block";
+      voteStatus.textContent = `Vote submitted: ${userVote.toUpperCase()}`;
     } else {
       enableVoting();
-      if (userVote) {
-        voteStatus.textContent = `Vote submitted: ${userVote.toUpperCase()}`;
-        voteYesBtn.disabled = false;
-        voteNoBtn.disabled = false;
-        voteAbstainBtn.disabled = false;
-      } else {
-        voteYesBtn.disabled = false;
-        voteNoBtn.disabled = false;
-        voteAbstainBtn.disabled = false;
-      }
+      voteStatus.textContent = "Voting open — please vote.";
     }
   });
 });
 
-
-// Submit vote with revote support (adjust counts)
+// SUBMIT VOTE
 async function submitVote(newVote) {
-  if (!(votingOpen && currentPNM && userRole !== "pnm")) return;
+  if (!votingOpen || !currentPNM) return;
 
   const voteId = `${currentPNM}_${userId}`;
   const userVoteRef = doc(db, `voting-sessions/${sessionId}/userVotes`, voteId);
   const votesRef = doc(db, `voting-sessions/${sessionId}/votes`, currentPNM);
 
-  // Fetch current aggregate votes
+  const userVoteSnap = await getDoc(userVoteRef);
   const votesSnap = await getDoc(votesRef);
+
   let votesData = votesSnap.exists()
     ? votesSnap.data()
-    : { yes: 0, no: 0, abstain: 0 };
+    : { yes:0, no:0, abstain:0 };
 
-  // Fetch the user's previous vote (if any)
-  const userVoteSnap = await getDoc(userVoteRef);
-  const oldVote = userVoteSnap.exists() ? userVoteSnap.data().vote : null;
-
-  // If changing vote, decrement old vote count
-  if (oldVote && oldVote !== newVote) {
-    votesData[oldVote] = Math.max(0, (votesData[oldVote] || 0) - 1);
+  // If user tries same vote, block
+  if (userVoteSnap.exists() && userVoteSnap.data().vote === newVote) {
+    voteStatus.textContent = "You already voted this. Use REVOTE to change.";
+    return;
   }
 
-  // Increment new vote
+  // If user had previous vote, subtract it
+  if (userVoteSnap.exists()) {
+    const oldVote = userVoteSnap.data().vote;
+    votesData[oldVote] = Math.max(0, votesData[oldVote] - 1);
+  }
+
+  // Add new vote
   votesData[newVote] = (votesData[newVote] || 0) + 1;
 
-  // Save updated totals
   await setDoc(votesRef, votesData, { merge: true });
-
-  // Save user's vote
   await setDoc(userVoteRef, { vote: newVote }, { merge: true });
 
-  // Update UI
   voteStatus.textContent = `Vote submitted: ${newVote.toUpperCase()}`;
+
   voteYesBtn.disabled = true;
   voteNoBtn.disabled = true;
   voteAbstainBtn.disabled = true;
+  revoteBtn.style.display = "inline-block";
 }
 
+// REVOTE
+revoteBtn.onclick = async () => {
+  const voteId = `${currentPNM}_${userId}`;
+  const userVoteRef = doc(db, `voting-sessions/${sessionId}/userVotes`, voteId);
+  const votesRef = doc(db, `voting-sessions/${sessionId}/votes`, currentPNM);
 
+  const userSnap = await getDoc(userVoteRef);
+  const voteSnap = await getDoc(votesRef);
+
+  if (!userSnap.exists() || !voteSnap.exists()) return;
+
+  const prevVote = userSnap.data().vote;
+  let data = voteSnap.data();
+
+  data[prevVote] = Math.max(0, data[prevVote] - 1);
+
+  await setDoc(votesRef, data, { merge: true });
+  await updateDoc(userVoteRef, { vote: null });
+
+  voteStatus.textContent = "Vote cleared — cast a new vote.";
+  voteYesBtn.disabled = false;
+  voteNoBtn.disabled = false;
+  voteAbstainBtn.disabled = false;
+  revoteBtn.style.display = "none";
+};
+
+// Button bindings
 voteYesBtn.onclick = () => submitVote("yes");
 voteNoBtn.onclick = () => submitVote("no");
 voteAbstainBtn.onclick = () => submitVote("abstain");
