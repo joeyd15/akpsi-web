@@ -22,30 +22,69 @@
       <button id="authButton" class="btn btn-outline-light btn-sm ms-2">Sign In</button>
     </div>
   </nav>
-  <!-- Greeting at top-right -->
+
   <div class="container text-end mt-3">
     <span id="userGreeting" class="fw-bold"></span>
   </div>
+
   <main class="container">
-    <div class="vote-card text-center" id="votingContainer">
-      <div id="slideArea">
-        <img id="pnmPhoto" src="" alt="PNM Photo" width="130" height="130" class="mb-2" />
-        <h3 id="pnmName" class="fw-bold"></h3>
-        <div id="slideNote" class="text-muted mb-3"></div>
-      </div>
-      <div id="voteButtons" class="my-3">
-        <button class="btn btn-success btn-vote" id="voteYes">Yes</button>
-        <button class="btn btn-danger btn-vote" id="voteNo">No</button>
-        <button class="btn btn-secondary btn-vote" id="voteAbstain">Abstain</button>
-        <button class="btn btn-warning btn-vote" id="revoteBtn" style="display:none;">Revote</button>
+    <div class="vote-card" id="votingContainer">
+      <div class="row">
+
+        <!-- LEFT: EXISTING VOTING UI (UNCHANGED) -->
+        <div class="col-md-6 text-center">
+          <div id="slideArea">
+            <img id="pnmPhoto" src="" alt="PNM Photo" width="130" height="130" class="mb-2" />
+            <h3 id="pnmName" class="fw-bold"></h3>
+            <div id="slideNote" class="text-muted mb-3"></div>
+          </div>
+
+          <div id="voteButtons" class="my-3">
+            <button class="btn btn-success btn-vote" id="voteYes">Yes</button>
+            <button class="btn btn-danger btn-vote" id="voteNo">No</button>
+            <button class="btn btn-secondary btn-vote" id="voteAbstain">Abstain</button>
+            <button class="btn btn-warning btn-vote" id="revoteBtn" style="display:none;">Revote</button>
+          </div>
+
+          <div class="summary-chart">
+            <canvas id="voteChart"></canvas>
+          </div>
+
+          <div id="voteStatus" class="mt-3 text-primary fw-semibold"></div>
+        </div>
+
+        <!-- RIGHT: APPLICATION PANEL (NEW, READ-ONLY) -->
+        <div class="col-md-6">
+          <div class="border rounded p-3 bg-light" style="max-height: 520px; overflow-y: auto;">
+            <h5 class="fw-bold mb-3">PNM Application</h5>
+
+            <div id="appMajor" class="mb-2"></div>
+            <div id="appGpa" class="mb-2"></div>
+            <div id="appGrad" class="mb-3"></div>
+
+            <hr>
+
+            <div class="mb-3">
+              <h6 class="fw-bold">About</h6>
+              <p id="appAbout" class="small text-muted"></p>
+            </div>
+
+            <div class="mb-3">
+              <h6 class="fw-bold">Why AKPsi?</h6>
+              <p id="appWhy" class="small text-muted"></p>
+            </div>
+
+            <div class="mb-3">
+              <h6 class="fw-bold">Accomplishments</h6>
+              <p id="appAccomplishments" class="small text-muted"></p>
+            </div>
+          </div>
+        </div>
 
       </div>
-      <div class="summary-chart">
-        <canvas id="voteChart"></canvas>
-      </div>
-      <div id="voteStatus" class="mt-3 text-primary fw-semibold"></div>
     </div>
   </main>
+
   <script type="module" src="./vote.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

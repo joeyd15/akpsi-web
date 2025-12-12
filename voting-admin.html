@@ -34,7 +34,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDocs, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDocs, collection, query, where, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
@@ -63,7 +63,27 @@
       sessionStatus.textContent = msg;
     }
 
-    function setActivePNM(index, votingOpen) {
+    async function resetVotes(sessionId, pnmId) {
+  // reset totals
+  await setDoc(
+    doc(db, `voting-sessions/${sessionId}/votes`, pnmId),
+    { yes: 0, no: 0, abstain: 0 }
+  );
+
+  // delete individual user votes
+  const votesSnap = await getDocs(
+    collection(db, `voting-sessions/${sessionId}/userVotes`)
+  );
+
+  for (const d of votesSnap.docs) {
+    if (d.id.startsWith(`${pnmId}_`)) {
+      await deleteDoc(d.ref);
+    }
+  }
+}
+
+
+   async function setActivePNM(index, votingOpen) {
       if (pnms.length === 0) {
         updateStatus("No PNMs available.");
         return;
@@ -71,6 +91,9 @@
       currentIdx = index;
       pnmSelect.selectedIndex = index;
       const pnmId = pnms[index].id;
+      if (votingOpen) {
+        await resetVotes(sessionId, pnmId);
+      }
       setDoc(doc(db, "voting-sessions", sessionId), {
         activePNM: pnmId,
         votingOpen

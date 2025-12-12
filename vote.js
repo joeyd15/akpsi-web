@@ -39,6 +39,15 @@ const authButton = document.getElementById("authButton");
 
 const voteButtons = document.getElementById("voteButtons");
 
+// === APPLICATION PANEL ELEMENTS (ADD ONLY) ===
+const appMajor = document.getElementById("appMajor");
+const appGpa = document.getElementById("appGpa");
+const appGrad = document.getElementById("appGrad");
+const appAbout = document.getElementById("appAbout");
+const appWhy = document.getElementById("appWhy");
+const appAccomplishments = document.getElementById("appAccomplishments");
+
+
 // ADMIN chart setup
 let resultSummary = document.getElementById('resultSummary');
 if (!resultSummary) {
@@ -157,6 +166,28 @@ onAuthStateChanged(auth, async (user) => {
     pnmName.textContent = `${d.firstName || ""} ${d.lastName || ""}`;
     pnmPhoto.src = d.photoURL || "https://placehold.co/130x130";
     slideNote.textContent = d.year ? `Year: ${d.year}` : "";
+
+    // === LOAD PNM APPLICATION (READ-ONLY, ADD ONLY) ===
+const appSnap = await getDoc(doc(db, "applications", activePNM));
+
+if (appSnap.exists()) {
+  const a = appSnap.data();
+  appMajor.textContent = `Major: ${a.major || "—"}`;
+  appGpa.textContent = `GPA: ${a.gpa ?? "—"}`;
+  appGrad.textContent = `Graduation: ${a.gradDate || "—"}`;
+  appAbout.textContent = a.about || "";
+  appWhy.textContent = a.whyAkpsi || "";
+  appAccomplishments.textContent = a.accomplishments || "";
+} else {
+  appMajor.textContent = "No application submitted.";
+  appGpa.textContent = "";
+  appGrad.textContent = "";
+  appAbout.textContent = "";
+  appWhy.textContent = "";
+  appAccomplishments.textContent = "";
+}
+
+
 
     // load vote totals
     onSnapshot(doc(db, `voting-sessions/${sessionId}/votes`, activePNM), (voteSnap) => {

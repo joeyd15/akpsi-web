@@ -152,8 +152,6 @@
         let pos = 0,
           neg = 0;
 
-        const mentionLines = [];
-        const interviewLines = [];
 
         // Quant totals
         const totalsMentions = {
@@ -174,65 +172,99 @@
         };
         let countInterviews = 0;
 
-        // Process Mentions
-        mentionsSnap.forEach((docSnap) => {
-          const d = docSnap.data();
-          const q = extractQuantitative(d);
+       // Process Mentions
+const positiveMentions = [];
+const negativeMentions = [];
 
-          if (
-            q.accomplished ||
-            q.professionalism ||
-            q.interest ||
-            q.energy ||
-            q.friendliness
-          ) {
-            totalsMentions.accomplished += q.accomplished;
-            totalsMentions.professionalism += q.professionalism;
-            totalsMentions.interest += q.interest;
-            totalsMentions.energy += q.energy;
-            totalsMentions.friendliness += q.friendliness;
-            countMentions++;
-          }
+mentionsSnap.forEach((docSnap) => {
+  const d = docSnap.data();
+  const q = extractQuantitative(d);
 
-          if ((d.type || "").toLowerCase() === "positive") pos++;
-          else if ((d.type || "").toLowerCase() === "negative") neg++;
+  if (
+    q.accomplished ||
+    q.professionalism ||
+    q.interest ||
+    q.energy ||
+    q.friendliness
+  ) {
+    totalsMentions.accomplished += q.accomplished;
+    totalsMentions.professionalism += q.professionalism;
+    totalsMentions.interest += q.interest;
+    totalsMentions.energy += q.energy;
+    totalsMentions.friendliness += q.friendliness;
+    countMentions++;
+  }
 
-          if (d.comment) {
-            const color =
-              (d.type || "").toLowerCase() === "positive"
-                ? "0A7E07"
-                : (d.type || "").toLowerCase() === "negative"
-                ? "CC0000"
-                : "333333";
+  if ((d.type || "").toLowerCase() === "positive") pos++;
+  else if ((d.type || "").toLowerCase() === "negative") neg++;
 
-            mentionLines.push({
-              text: `• ${d.comment}\n`,
-              options: { color, fontSize: 0 },
-            });
-          }
-        });
+  if (!d.comment) return;
+
+  const type = (d.type || "").toLowerCase();
+const isPositive = type === "positive";
+const isNegative = type === "negative";
+
+const color = isPositive ? "0A7E07" : isNegative ? "CC0000" : "333333";
+
+
+  const entry = {
+    text: `• ${d.comment}\n`,
+    options: { color, fontSize: 0 },
+  };
+
+  if (isPositive) positiveMentions.push(entry);
+else if (isNegative) negativeMentions.push(entry);
+
+});
+
+// Final ordered mentions: green first, then red
+const mentionLines = [...positiveMentions, ...negativeMentions];
+
 
         // Process Interviews
-        interviewsSnap.forEach((docSnap) => {
-          const d = docSnap.data();
-          const q = extractQuantitative(d);
+const positiveInterviews = [];
+const negativeInterviews = [];
+const neutralInterviews = [];
 
-          totalsInterviews.accomplished += q.accomplished;
-          totalsInterviews.professionalism += q.professionalism;
-          totalsInterviews.interest += q.interest;
-          totalsInterviews.energy += q.energy;
-          totalsInterviews.friendliness += q.friendliness;
-          countInterviews++;
+interviewsSnap.forEach((docSnap) => {
+  const d = docSnap.data();
+  const q = extractQuantitative(d);
 
-          const commentText = d.comments || d.comment || "";
+  totalsInterviews.accomplished += q.accomplished;
+  totalsInterviews.professionalism += q.professionalism;
+  totalsInterviews.interest += q.interest;
+  totalsInterviews.energy += q.energy;
+  totalsInterviews.friendliness += q.friendliness;
+  countInterviews++;
 
-          if (commentText) {
-            interviewLines.push({
-              text: `• ${commentText}\n`,
-              options: { color: "333333", fontSize: 0 },
-            });
-          }
-        });
+  const commentText = d.comments || d.comment || "";
+  if (!commentText) return;
+
+  const type = (d.type || "").toLowerCase();
+
+  let color = "333333";
+  if (type === "positive") color = "0A7E07";
+  if (type === "negative") color = "CC0000";
+
+  const entry = {
+    text: `• ${commentText}\n`,
+    options: { color, fontSize: 0 },
+  };
+
+  if (type === "positive") positiveInterviews.push(entry);
+  else if (type === "negative") negativeInterviews.push(entry);
+  else neutralInterviews.push(entry);
+});
+
+// Final ordered interviews: positive → negative → neutral
+const interviewLines = [
+  ...positiveInterviews,
+  ...negativeInterviews,
+  ...neutralInterviews,
+];
+
+
+
 
         const avgM = (key) =>
           countMentions
