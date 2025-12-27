@@ -57,6 +57,18 @@
           <a href="rush-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-graph-up"></i> View Rush Dashboard</a>
           <a href="alumni.html" class="btn btn-outline-secondary admin-btn"><i class="bi bi-person-heart"></i> View Alumni</a>
           <a href="credits.html" class="btn btn-primary btn-lg w-100 my-2" style="background-color:#003366; border:none;"><i class="bi bi-clipboard-check me-2"></i> Credit Management</a>
+          <hr class="my-4">
+
+<h5 class="fw-bold">Application Control</h5>
+<p id="appStatus" class="text-muted">Loading…</p>
+
+<button id="openApps" class="btn btn-success w-100 mb-2">
+  Open Applications
+</button>
+
+<button id="closeApps" class="btn btn-outline-danger w-100">
+  Close Applications
+</button>
 
           <a href="voting.html" class="btn btn-warning admin-btn mt-3"><i class="bi bi-bar-chart-steps"></i> Voting Night</a>
           <a href="voting-admin.html" class="btn btn-danger admin-btn mt-2"><i class="bi bi-toggle2-on"></i> Voting Session Admin</a>
@@ -368,6 +380,30 @@ const interviewLines = [
       overlay.classList.remove("show");
     }
   });
+
+  const appRef = doc(db, "config", "application");
+const statusEl = document.getElementById("appStatus");
+
+async function loadAppStatus() {
+  const snap = await getDoc(appRef);
+  statusEl.textContent = snap.data().applicationsOpen
+    ? "Status: OPEN"
+    : "Status: CLOSED";
+}
+
+document.getElementById("openApps").onclick = async () => {
+  await updateDoc(appRef, { applicationsOpen: true });
+  loadAppStatus();
+};
+
+document.getElementById("closeApps").onclick = async () => {
+  await updateDoc(appRef, { applicationsOpen: false });
+  loadAppStatus();
+};
+
+loadAppStatus();
+
+
 </script>
 
 </body>
