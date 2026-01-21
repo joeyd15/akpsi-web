@@ -18,23 +18,48 @@
       <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
     </div>
   </nav>
+
   <main class="container">
     <div class="vote-card text-center" id="votingAdminContainer">
       <h4>Voting Session Admin</h4>
+
       <select id="pnmSelect" class="form-select my-3"></select>
+
+      <!-- Generate/Lock/Unlock -->
+      <div class="d-flex justify-content-center flex-wrap mb-2">
+        <button class="btn btn-outline-secondary btn-control" id="generateOrderBtn">Generate Random Order</button>
+        <button class="btn btn-outline-primary btn-control" id="lockOrderBtn">Lock Order</button>
+        <button class="btn btn-outline-danger btn-control" id="unlockOrderBtn">Unlock Order</button>
+      </div>
+
       <div>
         <button class="btn btn-success btn-control" id="openBtn">Open Voting</button>
         <button class="btn btn-secondary btn-control" id="closeBtn">Close Voting</button>
         <button class="btn btn-info btn-control" id="nextBtn">Next PNM</button>
         <button class="btn btn-outline-info btn-control" id="prevBtn">Previous PNM</button>
       </div>
+
       <p class="text-muted mt-3" id="sessionStatus"></p>
     </div>
   </main>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDocs, collection, query, where, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      getDoc,
+      getDocs,
+      collection,
+      query,
+      where,
+      onSnapshot,
+      deleteDoc,
+      updateDoc,
+      deleteField
+    } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAQGY6rTnONnmBUUnrWpHM5qvyMz9BpfN8",
@@ -44,6 +69,7 @@
       messagingSenderId: "268414380859",
       appId: "1:268414380859:web:52cdd93b22d7801f60251e"
     };
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -56,6 +82,10 @@
     const prevBtn = document.getElementById("prevBtn");
     const sessionStatus = document.getElementById("sessionStatus");
 
+    const generateOrderBtn = document.getElementById("generateOrderBtn");
+    const lockOrderBtn = document.getElementById("lockOrderBtn");
+    const unlockOrderBtn = document.getElementById("unlockOrderBtn");
+
     let pnms = [];
     let currentIdx = 0;
 
@@ -63,27 +93,35 @@
       sessionStatus.textContent = msg;
     }
 
-    async function resetVotes(sessionId, pnmId) {
-  // reset totals
-  await setDoc(
-    doc(db, `voting-sessions/${sessionId}/votes`, pnmId),
-    { yes: 0, no: 0, abstain: 0 }
-  );
-
-  // delete individual user votes
-  const votesSnap = await getDocs(
-    collection(db, `voting-sessions/${sessionId}/userVotes`)
-  );
-
-  for (const d of votesSnap.docs) {
-    if (d.id.startsWith(`${pnmId}_`)) {
-      await deleteDoc(d.ref);
+    function shuffleIds(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = array[i];
+        array[i] = array[j];
+        array[j] = tmp;
+      }
     }
-  }
-}
 
+    async function resetVotes(sessionId, pnmId) {
+      // reset totals
+      await setDoc(
+        doc(db, `voting-sessions/${sessionId}/votes`, pnmId),
+        { yes: 0, no: 0, abstain: 0 }
+      );
 
-   async function setActivePNM(index, votingOpen) {
+      // delete individual user votes
+      const votesSnap = await getDocs(
+        collection(db, `voting-sessions/${sessionId}/userVotes`)
+      );
+
+      for (const d of votesSnap.docs) {
+        if (d.id.startsWith(`${pnmId}_`)) {
+          await deleteDoc(d.ref);
+        }
+      }
+    }
+
+    async function setActivePNM(index, votingOpen) {
       if (pnms.length === 0) {
         updateStatus("No PNMs available.");
         return;
@@ -97,8 +135,82 @@
       setDoc(doc(db, "voting-sessions", sessionId), {
         activePNM: pnmId,
         votingOpen
-      }, {merge:true});
+      }, { merge: true });
+
       updateStatus(`${votingOpen ? "Voting opened for" : "Voting closed for"}: ${pnms[index].name}`);
+    }
+
+    function renderDropdownFromIds(orderIds, nameById) {
+      pnms = [];
+      pnmSelect.innerHTML = "";
+
+      orderIds.forEach((id) => {
+        if (!nameById[id]) return;
+        const option = document.createElement("option");
+        option.value = id;
+        option.text = nameById[id];
+        pnmSelect.appendChild(option);
+        pnms.push({ id, name: option.text });
+      });
+    }
+
+    async function loadPnmsAndOrderState() {
+      const pnmsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "pnm")));
+
+      const nameById = {};
+      const allIds = [];
+      pnmsSnap.forEach((docSnap) => {
+        const d = docSnap.data();
+        const name = `${d.firstName || ""} ${d.lastName || ""}`.trim();
+        nameById[docSnap.id] = name || docSnap.id;
+        allIds.push(docSnap.id);
+      });
+
+      const sessionRef = doc(db, "voting-sessions", sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      const lockedOrder = (sessionSnap.exists() && Array.isArray(sessionSnap.data().order) && sessionSnap.data().order.length)
+        ? sessionSnap.data().order.filter(id => nameById[id])
+        : null;
+
+      const draftOrder = (sessionSnap.exists() && Array.isArray(sessionSnap.data().draftOrder) && sessionSnap.data().draftOrder.length)
+        ? sessionSnap.data().draftOrder.filter(id => nameById[id])
+        : null;
+
+      if (lockedOrder) {
+        // LOCKED: use 'order'
+        renderDropdownFromIds(lockedOrder, nameById);
+        updateStatus(`Order is LOCKED (${lockedOrder.length} PNMs).`);
+      } else if (draftOrder) {
+        // UNLOCKED but has draft: use draftOrder (this is the "Generate sticks" behavior)
+        renderDropdownFromIds(draftOrder, nameById);
+        updateStatus(`Order is UNLOCKED (Draft ready: ${draftOrder.length} PNMs). Click 'Lock Order' to freeze it.`);
+      } else {
+        // UNLOCKED and no draft: just show current list order
+        renderDropdownFromIds(allIds, nameById);
+        updateStatus("Order is UNLOCKED. Click 'Generate Random Order' to create a draft, then 'Lock Order'.");
+      }
+
+      if (pnms.length === 0) {
+        updateStatus("No PNMs found! Please check user data.");
+        return;
+      }
+
+      // Sync dropdown to activePNM if present
+      if (sessionSnap.exists() && sessionSnap.data().activePNM) {
+        const activeId = sessionSnap.data().activePNM;
+        const idx = pnms.findIndex(p => p.id === activeId);
+        if (idx >= 0) {
+          currentIdx = idx;
+          pnmSelect.selectedIndex = idx;
+        } else {
+          currentIdx = 0;
+          pnmSelect.selectedIndex = 0;
+        }
+      } else {
+        currentIdx = 0;
+        pnmSelect.selectedIndex = 0;
+      }
     }
 
     onAuthStateChanged(auth, async (user) => {
@@ -106,37 +218,86 @@
         window.location.href = "signin.html";
         return;
       }
-      const pnmsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "pnm")));
-      pnms = [];
-      pnmSelect.innerHTML = "";
-      pnmsSnap.forEach((docSnap, idx) => {
-        const d = docSnap.data();
-        const option = document.createElement("option");
-        option.value = docSnap.id;
-        option.text = `${d.firstName || ""} ${d.lastName || ""}`.trim();
-        pnmSelect.appendChild(option);
-        pnms.push({id: docSnap.id, name: option.text});
-      });
-      currentIdx = 0;
-      if (pnms.length === 0) {
-        updateStatus("No PNMs found! Please check user data.");
-      }
+      await loadPnmsAndOrderState();
     });
+
+    // ✅ Generate Random Order: writes draftOrder so it PERSISTS even if you unlock / refresh
+    generateOrderBtn.onclick = async () => {
+      const sessionRef = doc(db, "voting-sessions", sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      const locked = sessionSnap.exists() && Array.isArray(sessionSnap.data().order) && sessionSnap.data().order.length;
+      if (locked) {
+        updateStatus("Order is LOCKED. Unlock first if you want to generate a new random order.");
+        return;
+      }
+
+      // Build from current dropdown IDs (safe)
+      const ids = pnms.map(p => p.id);
+      if (!ids.length) {
+        updateStatus("No PNMs available to shuffle.");
+        return;
+      }
+
+      const newDraft = [...ids];
+      shuffleIds(newDraft);
+
+      await setDoc(sessionRef, { draftOrder: newDraft }, { merge: true });
+      await loadPnmsAndOrderState();
+      updateStatus("✅ Random order generated (Draft saved). Review it, then click 'Lock Order'.");
+    };
+
+    // ✅ Lock Order: copies draftOrder -> order (NO reshuffle)
+    lockOrderBtn.onclick = async () => {
+      const sessionRef = doc(db, "voting-sessions", sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      const locked = sessionSnap.exists() && Array.isArray(sessionSnap.data().order) && sessionSnap.data().order.length;
+      if (locked) {
+        updateStatus("Order is already LOCKED. Click 'Unlock Order' first if you want to re-lock.");
+        return;
+      }
+
+      const draft = (sessionSnap.exists() && Array.isArray(sessionSnap.data().draftOrder) && sessionSnap.data().draftOrder.length)
+        ? sessionSnap.data().draftOrder
+        : null;
+
+      if (!draft) {
+        updateStatus("No draft order found. Click 'Generate Random Order' first.");
+        return;
+      }
+
+      // Save official order; keep draftOrder (so you can unlock and re-lock same one if you want)
+      await setDoc(sessionRef, { order: draft }, { merge: true });
+      await loadPnmsAndOrderState();
+      updateStatus(`✅ Order LOCKED (${draft.length} PNMs).`);
+    };
+
+    // ✅ Unlock Order: removes only 'order' (keeps draftOrder so Generate "sticks")
+    unlockOrderBtn.onclick = async () => {
+      const sessionRef = doc(db, "voting-sessions", sessionId);
+      await updateDoc(sessionRef, { order: deleteField() });
+      await loadPnmsAndOrderState();
+      updateStatus("✅ Order UNLOCKED. Draft order is still saved (you can lock it again without regenerating).");
+    };
 
     openBtn.onclick = () => setActivePNM(pnmSelect.selectedIndex, true);
     closeBtn.onclick = () => setActivePNM(pnmSelect.selectedIndex, false);
+
     nextBtn.onclick = () => {
       if (pnms.length === 0) return;
       currentIdx = (currentIdx + 1) % pnms.length;
       pnmSelect.selectedIndex = currentIdx;
       setActivePNM(currentIdx, true);
     };
+
     prevBtn.onclick = () => {
       if (pnms.length === 0) return;
       currentIdx = (currentIdx - 1 + pnms.length) % pnms.length;
       pnmSelect.selectedIndex = currentIdx;
       setActivePNM(currentIdx, true);
     };
+
     pnmSelect.onchange = () => {
       if (pnms.length === 0) return;
       currentIdx = pnmSelect.selectedIndex;
@@ -156,6 +317,7 @@
       }
     });
   </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -56,6 +56,7 @@
           <a href="interview.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-people"></i> Submit Interview</a>
           <a href="rush-dashboard.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-graph-up"></i> View Rush Dashboard</a>
           <a href="alumni.html" class="btn btn-outline-secondary admin-btn"><i class="bi bi-person-heart"></i> View Alumni</a>
+          <a href="forms.html" class="btn btn-outline-primary admin-btn"><i class="bi bi-people"></i> Create a Form</a>
           <a href="credits.html" class="btn btn-primary btn-lg w-100 my-2" style="background-color:#003366; border:none;"><i class="bi bi-clipboard-check me-2"></i> Credit Management</a>
           <hr class="my-4">
 
@@ -146,13 +147,36 @@
       const pptx = new PptxGenJS();
       pptx.layout = "LAYOUT_16x9";
 
+      // ✅ Pull locked order (if exists) so PPT matches voting order
+      const sessionSnap = await getDoc(doc(db, "voting-sessions", "current"));
+      const lockedOrder = (sessionSnap.exists() && Array.isArray(sessionSnap.data().order))
+        ? sessionSnap.data().order
+        : null;
+
+      // Fallback query (also used as cache for user data)
       const pnmsSnap = await getDocs(
         query(collection(db, "users"), where("role", "==", "pnm"))
       );
 
-      for (const pnmDoc of pnmsSnap.docs) {
-        const pnm = pnmDoc.data();
-        const pnmId = pnmDoc.id;
+      let pnmIdsInOrder = [];
+      if (lockedOrder && lockedOrder.length) {
+        pnmIdsInOrder = lockedOrder;
+      } else {
+        pnmIdsInOrder = pnmsSnap.docs.map(d => d.id);
+      }
+
+      for (const pnmId of pnmIdsInOrder) {
+        // get PNM data (from cached query if possible, else fetch)
+        let pnm = null;
+
+        const cached = pnmsSnap.docs.find(d => d.id === pnmId);
+        if (cached) {
+          pnm = cached.data();
+        } else {
+          const pnmSnap = await getDoc(doc(db, "users", pnmId));
+          if (!pnmSnap.exists()) continue;
+          pnm = pnmSnap.data();
+        }
 
         // Fetch mentions & interviews
         const [mentionsSnap, interviewsSnap] = await Promise.all([
@@ -163,7 +187,6 @@
         // Count & store comments
         let pos = 0,
           neg = 0;
-
 
         // Quant totals
         const totalsMentions = {
@@ -232,7 +255,6 @@ else if (isNegative) negativeMentions.push(entry);
 // Final ordered mentions: green first, then red
 const mentionLines = [...positiveMentions, ...negativeMentions];
 
-
         // Process Interviews
 const positiveInterviews = [];
 const negativeInterviews = [];
@@ -274,9 +296,6 @@ const interviewLines = [
   ...negativeInterviews,
   ...neutralInterviews,
 ];
-
-
-
 
         const avgM = (key) =>
           countMentions
