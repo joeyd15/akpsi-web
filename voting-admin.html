@@ -154,6 +154,7 @@
       });
     }
 
+    // ✅ FIXED: stale order/draftOrder fallback
     async function loadPnmsAndOrderState() {
       const pnmsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "pnm")));
 
@@ -177,18 +178,24 @@
         ? sessionSnap.data().draftOrder.filter(id => nameById[id])
         : null;
 
-      if (lockedOrder) {
+      if (lockedOrder && lockedOrder.length) {
         // LOCKED: use 'order'
         renderDropdownFromIds(lockedOrder, nameById);
         updateStatus(`Order is LOCKED (${lockedOrder.length} PNMs).`);
-      } else if (draftOrder) {
+      } else if (draftOrder && draftOrder.length) {
         // UNLOCKED but has draft: use draftOrder (this is the "Generate sticks" behavior)
         renderDropdownFromIds(draftOrder, nameById);
         updateStatus(`Order is UNLOCKED (Draft ready: ${draftOrder.length} PNMs). Click 'Lock Order' to freeze it.`);
       } else {
-        // UNLOCKED and no draft: just show current list order
+        // UNLOCKED and no usable draft: show current list
         renderDropdownFromIds(allIds, nameById);
         updateStatus("Order is UNLOCKED. Click 'Generate Random Order' to create a draft, then 'Lock Order'.");
+      }
+
+      // ✅ If saved order/draft was stale and filtered to 0, fall back to current PNMs
+      if (pnms.length === 0 && allIds.length > 0) {
+        renderDropdownFromIds(allIds, nameById);
+        updateStatus("⚠️ Saved order contained stale PNMs. Showing current PNMs instead. Generate/Lock to refresh order.");
       }
 
       if (pnms.length === 0) {
