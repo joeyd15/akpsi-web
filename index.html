@@ -14,106 +14,95 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
-  :root{
-    --akpsi-gold: #C9A227;
-    --overlay-dark: rgba(0,0,0,0.45);
-    --overlay-light: rgba(255,255,255,0.88);
-  }
-
-  body {
-    font-family: 'Raleway', sans-serif;
-    background: #ffffff;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Navbar: clean, professional, unobtrusive */
-  .navbar {
-    background: rgba(0,0,0,0.85) !important;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-  }
-
-  .navbar-brand {
-    letter-spacing: 0.5px;
-  }
-
-  .navbar-nav .nav-link {
-    opacity: 0.9;
-    transition: opacity 0.15s ease;
-  }
-
-  .navbar-nav .nav-link:hover {
-    opacity: 1;
-  }
-
-  /* Hero Section */
-  header.hero-section {
-    height: 100vh;
-    margin-top: 56px;
-    background: url('images/homepage.png') no-repeat center center/cover;
-    position: relative;
-  }
-
-  /* Soft photo overlay (lighter than before) */
-  header.hero-section::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(0,0,0,0.35),
-      rgba(0,0,0,0.25),
-      rgba(0,0,0,0.4)
-    );
-    z-index: 0;
-  }
-
-  /* Central content card — THIS is the old-site feel */
-  header.hero-section .container {
-    position: relative;
-    z-index: 1;
-    max-width: 900px;
-    background: var(--overlay-light);
-    color: #222;
-    padding: 3.5rem 3rem;
-    border-radius: 1rem;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.25);
-  }
-
-  /* Typography: calm, confident, not “app-like” */
-  header.hero-section h1 {
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    margin-bottom: 1rem;
-    color: #111;
-  }
-
-  header.hero-section p.lead {
-    font-size: 1.15rem;
-    color: #444;
-    margin-bottom: 0;
-  }
-
-  /* Mobile tuning */
-  @media (max-width: 576px) {
-    header.hero-section .container {
-      padding: 2.25rem 1.5rem;
-      margin: 0 1rem;
+    :root{
+      --akpsi-gold: #C9A227;
     }
 
-    header.hero-section h1 {
-      font-size: 2rem;
+    body {
+      font-family: 'Raleway', sans-serif;
+      background: #a5c1eb; /* ✅ grey background */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    header.hero-section p.lead {
-      font-size: 1.05rem;
+    .navbar {
+      background: rgba(0,0,0,0.85) !important;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
-  }
-</style>
 
+    .navbar-brand {
+      letter-spacing: 0.5px;
+    }
 
+    .navbar-nav .nav-link {
+      opacity: 0.9;
+      transition: opacity 0.15s ease;
+    }
+
+    .navbar-nav .nav-link:hover {
+      opacity: 1;
+    }
+
+    /* ✅ New homepage layout (no full-screen background image) */
+    .home-hero {
+      margin-top: 100px; /* accounts for fixed navbar */
+      padding: 4rem 0;
+    }
+
+    .hero-card {
+      background: #ffffffc2;
+      border-radius: 18px;
+      padding: 3.5rem;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+    }
+
+    .hero-title {
+      font-weight: 700;
+      font-size: 2.35rem;
+      color: #111;
+      letter-spacing: 0.2px;
+    }
+
+    .hero-subtitle {
+      font-size: 1.12rem;
+      color: #555;
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+
+    .hero-values {
+      margin-top: 1.25rem;
+      font-weight: 700;
+      color: #003366;
+      letter-spacing: 0.35px;
+    }
+
+    .hero-image-wrapper {
+      background: #e9ecef;
+      border-radius: 14px;
+      padding: 0.75rem;
+    }
+
+    .hero-image-wrapper img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      object-fit: cover;
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .hero-card {
+        padding: 2.25rem;
+      }
+      .hero-title {
+        font-size: 2rem;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
   <!-- ✅ Navbar -->
@@ -126,46 +115,30 @@
 
       <div class="collapse navbar-collapse" id="navMenu">
         <ul class="navbar-nav ms-auto">
+          <!-- Always visible -->
           <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
-          
-          
 
-          <!-- Added Voting Night button only for brothers -->
-          <li class="nav-item d-none" id="votingNightLink">
-            <a class="nav-link" href="voting.html">Voting Night</a>
+          <!-- Role-based links (hidden by default) -->
+          <li class="nav-item d-none" id="membersLink"><a class="nav-link" href="members.html">Members</a></li>
 
-            <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
-            <a class="nav-link" href="interview.html">Interviews</a>
-          </li>
-          
-          
+          <!-- Brother-only -->
+          <li class="nav-item d-none" id="submitMentionLink"><a class="nav-link" href="mentions.html">Submit Mention</a></li>
+          <li class="nav-item d-none" id="submitInterviewLink"><a class="nav-link" href="interview.html">Submit Interview</a></li>
+          <li class="nav-item d-none" id="votingNightLink"><a class="nav-link" href="voting.html">Voting Night</a></li>
 
-          <!-- Role-based links -->
-          <li class="nav-item d-none" id="brotherPortalLink">
-            <a class="nav-link" href="brother-portal.html">Brother Portal</a>
-          </li>
-          <li class="nav-item d-none" id="adminPortalLink">
-            <a class="nav-link" href="admin-portal.html">Admin Portal</a>
-          </li>
-          <li class="nav-item d-none" id="mentionsLink">
-            <a class="nav-link" href="mentions.html">Mentions</a>
-          </li>
-          <li class="nav-item d-none" id="pnmDashboardLink">
-            <a class="nav-link" href="pnm-dashboard.html">PNM Dashboard</a>
-          </li>
-          <!-- PNM Application button visible only to PNMs -->
-          <li class="nav-item d-none" id="pnmApplicationLink">
-            <a class="nav-link" href="application.html">PNM Application</a>
-          </li>
-          <li class="nav-item d-none" id="rushDashboardLink">
-            <a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a>
-          </li>
-          <li class="nav-item d-none" id="interviewDashboardLink">
-            <a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a>
-          </li>
+          <!-- PNM-only -->
+          <li class="nav-item d-none" id="pnmApplicationLink"><a class="nav-link" href="application.html">PNM Application</a></li>
 
-          <!-- Auth -->
-          <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
+          <!-- Admin-only (left alone for now) -->
+          <li class="nav-item d-none" id="adminPortalLink"><a class="nav-link" href="admin-portal.html">Admin Portal</a></li>
+          <li class="nav-item d-none" id="pnmDashboardLink"><a class="nav-link" href="pnm-dashboard.html">PNM Dashboard</a></li>
+          <li class="nav-item d-none" id="rushDashboardLink"><a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a></li>
+          <li class="nav-item d-none" id="interviewDashboardLink"><a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a></li>
+
+          <!-- Greeting (only when signed in) -->
+          <li class="nav-item d-none" id="greetingItem"><a class="nav-link" id="greeting">Hi!</a></li>
+
+          <!-- Auth button (always visible) -->
           <li class="nav-item">
             <a class="btn btn-outline-light ms-2" href="signin.html" id="authButton">Sign In</a>
           </li>
@@ -174,13 +147,44 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header class="hero-section d-flex align-items-center justify-content-center text-center text-white">
-    <div class="container">
-      <h1 class="display-4 fw-bold">Welcome to the AKPsi Portal</h1>
-      <p class="lead mb-4">Manage Attendance • Rush • Credits • Voting • Interviews</p>
+  <!-- ✅ New Homepage Hero -->
+  <main class="container home-hero">
+    <div class="hero-card">
+      <div class="row align-items-center g-5">
+
+        <!-- LEFT: Text -->
+        <div class="col-md-7 text-start">
+          <h1 class="hero-title mb-3">
+            Alpha Kappa Psi <br>
+            Zeta Lambda Chapter
+          </h1>
+
+          <p class="hero-subtitle">
+            We are a <strong>business professional fraternity</strong> at the
+            <strong>University of Tennessee</strong>, committed to building principled leaders through professional
+            development, lifelong relationships, and meaningful service.
+          </p>
+
+          <p class="hero-subtitle">
+            Our chapter is continuously growing focused on expanding our impact and developing members through a strong
+            brotherhood rooted in opportunity, accountability, and leadership.
+          </p>
+
+          <div class="hero-values">
+            Brotherhood • Unity • Integrity • Knowledge • Service
+          </div>
+        </div>
+
+        <!-- RIGHT: Image -->
+        <div class="col-md-5">
+          <div class="hero-image-wrapper">
+            <img src="images/homepage.png" alt="Alpha Kappa Psi Zeta Lambda Chapter">
+          </div>
+        </div>
+
+      </div>
     </div>
-  </header>
+  </main>
 
   <!-- 🔥 Firebase Auth + Role Logic -->
   <script type="module">
@@ -188,81 +192,91 @@
     import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
-    const greeting = document.getElementById("greeting");
     const authButton = document.getElementById("authButton");
 
-    const brotherPortalLink = document.getElementById("brotherPortalLink");
-    const adminPortalLink = document.getElementById("adminPortalLink");
-    const mentionsLink = document.getElementById("mentionsLink");
-    const pnmDashboardLink = document.getElementById("pnmDashboardLink");
+    const greetingItem = document.getElementById("greetingItem");
+    const greeting = document.getElementById("greeting");
+
+    const membersLink = document.getElementById("membersLink");
+    const submitMentionLink = document.getElementById("submitMentionLink");
+    const submitInterviewLink = document.getElementById("submitInterviewLink");
+    const votingNightLink = document.getElementById("votingNightLink");
     const pnmApplicationLink = document.getElementById("pnmApplicationLink");
+
+    // Admin links (left alone for now)
+    const adminPortalLink = document.getElementById("adminPortalLink");
+    const pnmDashboardLink = document.getElementById("pnmDashboardLink");
     const rushDashboardLink = document.getElementById("rushDashboardLink");
     const interviewDashboardLink = document.getElementById("interviewDashboardLink");
-    const votingNightLink = document.getElementById("votingNightLink");
+
+    function hideAllRoleLinks() {
+      [
+        greetingItem,
+        membersLink,
+        submitMentionLink,
+        submitInterviewLink,
+        votingNightLink,
+        pnmApplicationLink,
+        adminPortalLink,
+        pnmDashboardLink,
+        rushDashboardLink,
+        interviewDashboardLink
+      ].forEach(el => el.classList.add("d-none"));
+    }
 
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        let role = "pnm";
-        let firstName = user.email;
-        if (docSnap.exists()) {
-          role = docSnap.data().role || "pnm";
-          firstName = docSnap.data().firstName || user.email;
-        }
+      // Default state (logged out): ONLY Home + Sign In
+      hideAllRoleLinks();
+      authButton.textContent = "Sign In";
+      authButton.href = "signin.html";
+      authButton.onclick = null;
 
-        greeting.textContent = `Hi, ${firstName}!`;
-        authButton.textContent = "Log Out";
-        authButton.href = "#";
-        authButton.onclick = async () => {
-          await signOut(auth);
-          window.location.href = "signin.html";
-        };
+      if (!user) return;
 
-        // ✅ Role-based visibility
-        if (role === "brother" || role === "admin") {
-          brotherPortalLink.classList.remove("d-none");
-          mentionsLink.classList.remove("d-none");
-        }
-        if (role === "admin") {
-          adminPortalLink.classList.remove("d-none");
-          pnmDashboardLink.classList.remove("d-none");
-          rushDashboardLink.classList.remove("d-none");
-          interviewDashboardLink.classList.remove("d-none");
-        }
-        // Show Voting Night only for brothers
-        if (role === "brother") {
-          votingNightLink.classList.remove("d-none");
-        } else {
-          votingNightLink.classList.add("d-none");
-        }
-        // Show PNM Application only for PNMs
-        if (role === "pnm") {
-          pnmApplicationLink.classList.remove("d-none");
-        } else {
-          pnmApplicationLink.classList.add("d-none");
-        }
-      } else {
-        greeting.textContent = "Hi!";
-        authButton.textContent = "Sign In";
-        authButton.href = "signin.html";
-        [brotherPortalLink, adminPortalLink, mentionsLink, pnmDashboardLink, rushDashboardLink, interviewDashboardLink, votingNightLink, pnmApplicationLink]
-          .forEach(el => el.classList.add("d-none"));
+      // Signed in
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      const role = userSnap.exists() ? (userSnap.data().role || "pnm") : "pnm";
+      const firstName = userSnap.exists() ? (userSnap.data().firstName || user.email) : user.email;
+
+      // Greeting + logout
+      greetingItem.classList.remove("d-none");
+      greeting.textContent = `Hi, ${firstName}!`;
+      authButton.textContent = "Log Out";
+      authButton.href = "#";
+      authButton.onclick = async (e) => {
+        e.preventDefault();
+        await signOut(auth);
+        window.location.href = "signin.html";
+      };
+
+      // Role-based nav
+      if (role === "pnm") {
+        membersLink.classList.remove("d-none");
+        pnmApplicationLink.classList.remove("d-none");
+        return;
+      }
+
+      if (role === "brother") {
+        membersLink.classList.remove("d-none");
+        submitMentionLink.classList.remove("d-none");
+        submitInterviewLink.classList.remove("d-none");
+        votingNightLink.classList.remove("d-none");
+        return;
+      }
+
+      // Admin left alone (keeps your admin access pattern)
+      if (role === "admin") {
+        membersLink.classList.remove("d-none");
+        adminPortalLink.classList.remove("d-none");
+        pnmDashboardLink.classList.remove("d-none");
+        rushDashboardLink.classList.remove("d-none");
+        interviewDashboardLink.classList.remove("d-none");
+        return;
       }
     });
   </script>
+
   <script src="/chat-widget.js"></script>
-  <!-- Shared Auth Loader (for persistence) -->
-  <!-- REMOVED v8 Firebase scripts! -->
-  <!--
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  -->
-  <script src="js/jsauth.js"></script>
-
-  <!-- Bootstrap Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-
 </body>
 </html>
