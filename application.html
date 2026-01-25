@@ -65,6 +65,12 @@
           <input type="text" class="form-control" id="gradDate" placeholder="e.g. May 2026" required>
         </div>
 
+        <!-- NEW: PLEDGE CLASS DROPDOWN -->
+        <div class="mb-3">
+          <label class="form-label">Pledge Class</label>
+          <select class="form-select" id="pledgeClass" required></select>
+        </div>
+
         <div class="mb-3">
           <label class="form-label">About Me (200-500 words)</label>
           <textarea class="form-control" id="about" rows="3" required></textarea>
@@ -117,6 +123,28 @@
     const appConfigRef = doc(db, "config", "application");
     const form = document.getElementById("pnmForm");
 
+    // NEW: pledge class dropdown element
+    const pledgeClassSelect = document.getElementById("pledgeClass");
+
+    function buildPledgeClassOptions() {
+      // Goes 5 years out from the current year (inclusive)
+      const now = new Date();
+      const startYear = now.getFullYear();
+      const endYear = startYear + 5;
+
+      const options = [];
+      for (let y = startYear; y <= endYear; y++) {
+        options.push(`Spring ${y}`);
+        options.push(`Fall ${y}`);
+      }
+
+      // Fill dropdown
+      pledgeClassSelect.innerHTML = `<option value="" disabled selected>Select a pledge class</option>` +
+        options.map(opt => `<option value="${opt}">${opt}</option>`).join("");
+    }
+
+    buildPledgeClassOptions();
+
     async function checkApplicationOpen() {
       const snap = await getDoc(appConfigRef);
       const open = snap.data().applicationsOpen;
@@ -142,6 +170,10 @@
           major: document.getElementById("major").value,
           gpa: parseFloat(document.getElementById("gpa").value),
           gradDate: document.getElementById("gradDate").value,
+
+          // NEW: save pledge class to Firestore
+          pledgeClass: document.getElementById("pledgeClass").value,
+
           about: document.getElementById("about").value,
           whyAkpsi: document.getElementById("whyAkpsi").value,
           accomplishments: document.getElementById("accomplishments").value,
@@ -152,6 +184,9 @@
           await setDoc(doc(db, "applications", user.uid), appData);
           alert("✅ Application submitted successfully!");
           form.reset();
+
+          // NEW: restore placeholder option after reset
+          buildPledgeClassOptions();
         } catch (err) {
           alert("❌ Error submitting application: " + err.message);
         }

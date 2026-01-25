@@ -46,17 +46,14 @@
     <div class="credits-card">
       <h2 class="fw-bold mb-4 text-center">Admin Credit Management</h2>
       <div class="text-center mb-4">
-  <a href="credit-events.html" class="btn btn-outline-primary">
-    Create Credit Event (QR)
-  </a>
+        <a href="credit-events.html" class="btn btn-outline-primary">
+          Create Credit Event (QR)
+        </a>
 
-  <a href="credit-events-history.html" class="btn btn-outline-secondary">
-    Past Events
-  </a>
-</div>
-
-
-
+        <a href="credit-events-history.html" class="btn btn-outline-secondary">
+          Past Events
+        </a>
+      </div>
 
       <!-- Semester Credit Requirements -->
       <h5 class="fw-bold mb-3 text-center">Semester Credit Requirements</h5>
@@ -137,6 +134,109 @@
     const adminTableBody = document.getElementById("adminTableBody");
     const saveBtn = document.getElementById("saveRequirements");
 
+    // ---------- UI LABELS + SORTED DROPDOWN ----------
+    function formatCategoryLabel(cat) {
+      return cat.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase());
+    }
+
+    const categoriesSortedForDropdown = [...categories].sort((a, b) =>
+      formatCategoryLabel(a).localeCompare(formatCategoryLabel(b))
+    );
+
+    // ---------- TABLE SORT STATE ----------
+    let adminUsersCache = []; // stores rows so header-click sorting works
+    const sortState = { key: null, dir: 1 }; // dir: 1 = asc, -1 = desc
+
+    // Map visible table columns to sortable keys (by index)
+    // 0 Name, 1 Status, 2..9 categories (in the fixed display order), 10 Total, 11 Add Credit (not sortable)
+    const columnKeyByIndex = [
+      "name",
+      "status",
+      categories[0],
+      categories[1],
+      categories[2],
+      categories[3],
+      categories[4],
+      categories[5],
+      categories[6],
+      categories[7],
+      "total",
+      null
+    ];
+
+    function getSortValue(row, key) {
+      if (key === "name") return (row.name || "").toLowerCase();
+      if (key === "status") return (row.status || "").toLowerCase();
+      if (key === "total") return Number(row.total || 0);
+      // category key
+      return Number((row.earned || {})[key] || 0);
+    }
+
+    function compareValues(a, b, key) {
+      const va = getSortValue(a, key);
+      const vb = getSortValue(b, key);
+
+      const isNumber = typeof va === "number" && typeof vb === "number";
+      if (isNumber) return va - vb;
+
+      return String(va).localeCompare(String(vb));
+    }
+
+    function renderAdminTable() {
+      adminTableBody.innerHTML = "";
+
+      let rows = [...adminUsersCache];
+
+      if (sortState.key) {
+        const key = sortState.key;
+        const dir = sortState.dir;
+        rows.sort((a, b) => dir * compareValues(a, b, key));
+      }
+
+      rows.forEach((rowData) => {
+        const earned = rowData.earned || {};
+        const total = rowData.total || 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${rowData.firstName || ""} ${rowData.lastName || ""}</td>
+          <td class="text-uppercase">${rowData.status || "active"}</td>
+          ${categories.map(cat => `<td>${earned[cat] || 0}</td>`).join("")}
+          <td class="fw-bold text-center">${total}</td>
+          <td class="text-center">
+            <select class="form-select form-select-sm d-inline-block w-auto me-2" id="cat-${rowData.uid}">
+              ${categoriesSortedForDropdown
+                .map(c => `<option value="${c}">${formatCategoryLabel(c)}</option>`)
+                .join("")}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" onclick="addCredit('${rowData.uid}')">Add</button>
+          </td>
+        `;
+        adminTableBody.appendChild(tr);
+      });
+    }
+
+    function setupHeaderSortingOnce() {
+      const headerThs = document.querySelectorAll("#adminView thead tr th");
+      headerThs.forEach((th, idx) => {
+        const key = columnKeyByIndex[idx];
+        if (!key) return; // do not sort Add Credit
+
+        th.style.cursor = "pointer";
+        th.title = "Click to sort";
+
+        th.addEventListener("click", () => {
+          if (sortState.key === key) {
+            sortState.dir = -sortState.dir; // toggle direction
+          } else {
+            sortState.key = key;
+            sortState.dir = 1; // default asc
+          }
+          renderAdminTable();
+        });
+      });
+    }
+
     // ---------- AUTH CHECK ----------
     onAuthStateChanged(auth, async (user) => {
       if (!user) return (window.location.href = "signin.html");
@@ -153,6 +253,7 @@
         return;
       }
 
+      setupHeaderSortingOnce();
       await loadRequirements();
       await loadAdminTable();
     });
@@ -190,30 +291,29 @@
 
     // ---------- LOAD USERS ----------
     async function loadAdminTable() {
-      adminTableBody.innerHTML = "";
+      adminUsersCache = [];
       const usersSnap = await getDocs(collection(db, "users"));
+
       usersSnap.forEach((u) => {
         const data = u.data();
         if (data.role === "admin") return;
+
         const earned = data.earnedCredits || {};
         const total = Object.values(earned).reduce((a, b) => a + (b || 0), 0);
         const status = data.status || "active";
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${data.firstName || ""} ${data.lastName || ""}</td>
-          <td class="text-uppercase">${status}</td>
-          ${categories.map(cat => `<td>${earned[cat] || 0}</td>`).join("")}
-          <td class="fw-bold text-center">${total}</td>
-          <td class="text-center">
-            <select class="form-select form-select-sm d-inline-block w-auto me-2" id="cat-${u.id}">
-              ${categories.map(c => `<option value="${c}">${c.replace(/([A-Z])/g, ' $1')}</option>`).join("")}
-            </select>
-            <button class="btn btn-sm btn-outline-primary" onclick="addCredit('${u.id}')">Add</button>
-          </td>
-        `;
-        adminTableBody.appendChild(row);
+        adminUsersCache.push({
+          uid: u.id,
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          name: `${data.firstName || ""} ${data.lastName || ""}`.trim(),
+          status: status,
+          earned: earned,
+          total: total
+        });
       });
+
+      renderAdminTable();
     }
 
     // ---------- ADD CREDIT ----------
