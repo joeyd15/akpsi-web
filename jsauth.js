@@ -32,6 +32,7 @@ const firebaseConfig = {
   authDomain: "akpsi-web.firebaseapp.com",
   projectId: "akpsi-web",
   storageBucket: "akpsi-web.firebasestorage.app",
+
   messagingSenderId: "268414380859",
   appId: "1:268414380859:web:52cdd93b22d7801f60251e",
 };
@@ -42,7 +43,7 @@ setPersistence(auth, browserLocalPersistence).catch(e => {
   console.warn("Failed to set persistence", e);
 });
 const db = getFirestore(app);
-const storage = getStorage(app);
+const storage = getStorage(app, "gs://akpsi-web.firebasestorage.app");
 
 function listenAuth({
   greeting,

@@ -240,7 +240,9 @@ async function loadPNMAndApplication(pnmId) {
   pnmName.textContent = fullName;
 
   // Photo: support either photoUrl field OR blank
-  const photoUrl = pnmUser.photoUrl || pnmUser.photo || "";
+  // Photo: support photoURL (standard), photoUrl (legacy), or photo (legacy)
+  const photoUrl = pnmUser.photoURL || pnmUser.photoUrl || pnmUser.photo || "";
+
   if (photoUrl) {
     pnmPhoto.src = photoUrl;
   } else {
