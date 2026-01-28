@@ -131,7 +131,8 @@
           <li class="nav-item d-none" id="interviewDashboardLink"><a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a></li>
 
           <!-- ✅ Admin can upload ANYONE's photo -->
-         
+         <li class="nav-item d-none" id="uploadPNMPhotosLink"><a class="nav-link" href="upload-photo.html">Upload Photos</a></li>
+
 
           <!-- Greeting (only when signed in) -->
           <li class="nav-item d-none" id="greetingItem"><a class="nav-link" id="greeting">Hi!</a></li>
@@ -201,6 +202,8 @@
     const submitInterviewLink = document.getElementById("submitInterviewLink");
     const myCreditsLink = document.getElementById("myCreditsLink");
     const votingNightLink = document.getElementById("votingNightLink");
+    const pnmPics = document.getElementById("pnmPics");
+
 
     const editProfileLink = document.getElementById("editProfileLink");
     const pnmApplicationLink = document.getElementById("pnmApplicationLink");
@@ -227,7 +230,7 @@
         rushDashboardLink,
         interviewDashboardLink,
         uploadPNMPhotosLink
-      ].forEach(el => el.classList.add("d-none"));
+      ].forEach(el => { if (el) el.classList.add("d-none"); });
     }
 
     onAuthStateChanged(auth, async (user) => {

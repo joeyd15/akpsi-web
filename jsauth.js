@@ -43,7 +43,7 @@ setPersistence(auth, browserLocalPersistence).catch(e => {
   console.warn("Failed to set persistence", e);
 });
 const db = getFirestore(app);
-const storage = getStorage(app, "gs://akpsi-web.firebasestorage.app");
+const storage = getStorage(app);
 
 function listenAuth({
   greeting,
