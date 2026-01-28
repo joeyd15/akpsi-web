@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PNM Pictures | AKPsi Portal</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --akpsi-gold: #C9A227;
+    }
+
+    body {
+      font-family: 'Raleway', sans-serif;
+      background: #f8f9fa;
+    }
+
+    .page-card {
+      margin-top: 120px;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .muted { color: rgba(0,0,0,0.6); }
+
+    .pnm-card{
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .pnm-photo-wrap{
+      background: #eef2f7;
+      width: 100%;
+      aspect-ratio: 1/1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .pnm-photo{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    .pnm-initials{
+      width: 100%;
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: rgba(0,0,0,0.45);
+      letter-spacing: 1px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .25rem .6rem;
+      border-radius: 999px;
+      font-size: .85rem;
+      font-weight: 600;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(0,0,0,0.02);
+    }
+
+    .search-input{
+      border-radius: 999px;
+      padding-left: 2.25rem;
+    }
+
+    .search-wrap{
+      position: relative;
+    }
+    .search-wrap i{
+      position:absolute;
+      top:50%;
+      left: .85rem;
+      transform: translateY(-50%);
+      color: rgba(0,0,0,0.45);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+
+          <!-- Brother nav you already use -->
+          <li class="nav-item"><a class="nav-link" href="members.html">Members</a></li>
+          <li class="nav-item"><a class="nav-link" href="mentions.html">Submit Mention</a></li>
+          <li class="nav-item"><a class="nav-link" href="interview.html">Submit Interview</a></li>
+          <li class="nav-item"><a class="nav-link" href="my-credits.html">My Credits</a></li>
+          <li class="nav-item"><a class="nav-link" href="voting.html">Voting Night</a></li>
+
+          <!-- THIS PAGE -->
+          <li class="nav-item"><a class="nav-link active" href="pnms-pics.html">PNM Pictures</a></li>
+
+          <li class="nav-item"><a class="nav-link" id="greeting">Hi!</a></li>
+          <li class="nav-item">
+            <a class="btn btn-outline-light ms-2" href="signin.html" id="authButton">Sign In</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="page-card">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+        <div>
+          <h2 class="fw-bold mb-1">PNM Pictures</h2>
+          <div class="muted" id="subtitle">Loading PNMs…</div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <span class="pill" id="countPill"><i class="bi bi-people"></i> —</span>
+
+          <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input id="searchInput" class="form-control search-input" placeholder="Search name or email" />
+          </div>
+
+          <select id="sortSelect" class="form-select" style="border-radius: 999px;">
+            <option value="az">Sort: A → Z</option>
+            <option value="za">Sort: Z → A</option>
+            <option value="newest">Sort: Newest</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-3" id="grid"></div>
+
+      <div class="mt-3 muted" style="font-size:.95rem;">
+        <i class="bi bi-info-circle"></i>
+        Only brothers/admins can view this page.
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./jsauth.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { doc, getDoc, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+    const greeting = document.getElementById("greeting");
+    const authButton = document.getElementById("authButton");
+    const subtitle = document.getElementById("subtitle");
+    const countPill = document.getElementById("countPill");
+    const grid = document.getElementById("grid");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
+
+    let allPnms = [];
+
+    function initialsOf(firstName, lastName, email){
+      const f = (firstName || "").trim();
+      const l = (lastName || "").trim();
+      if (f || l) return `${(f[0]||"").toUpperCase()}${(l[0]||"").toUpperCase()}`.trim() || (f[0]||"").toUpperCase();
+      const e = (email || "").trim();
+      return e ? e[0].toUpperCase() : "P";
+    }
+
+    function fullName(p){
+      const first = (p.firstName || "").trim();
+      const last = (p.lastName || "").trim();
+      const name = `${first} ${last}`.trim();
+      return name || (p.email ? p.email.split("@")[0] : "PNM");
+    }
+
+    function normalize(str){
+      return (str || "").toLowerCase();
+    }
+
+    function sortPnms(list, mode){
+      const copy = [...list];
+
+      if (mode === "za") {
+        copy.sort((a,b) => normalize(fullName(b)).localeCompare(normalize(fullName(a))));
+        return copy;
+      }
+
+      if (mode === "newest") {
+        // If you store createdAt on user docs, this will work.
+        // If not, it will gracefully fall back to name.
+        copy.sort((a,b) => {
+          const at = a.createdAt?.seconds || 0;
+          const bt = b.createdAt?.seconds || 0;
+          if (bt !== at) return bt - at;
+          return normalize(fullName(a)).localeCompare(normalize(fullName(b)));
+        });
+        return copy;
+      }
+
+      // default az
+      copy.sort((a,b) => normalize(fullName(a)).localeCompare(normalize(fullName(b))));
+      return copy;
+    }
+
+    function render(list){
+      grid.innerHTML = "";
+
+      if (list.length === 0) {
+        subtitle.textContent = "No PNMs found.";
+        countPill.innerHTML = `<i class="bi bi-people"></i> 0 PNMs`;
+        return;
+      }
+
+      subtitle.textContent = "Browse and search PNMs by name/email.";
+      countPill.innerHTML = `<i class="bi bi-people"></i> ${list.length} PNMs`;
+
+      list.forEach(p => {
+        const col = document.createElement("div");
+        col.className = "col-12 col-sm-6 col-md-4 col-lg-3";
+
+        const name = fullName(p);
+        const email = p.email || "";
+        const photoURL = p.photoURL || "";
+
+        const initials = initialsOf(p.firstName, p.lastName, email);
+
+        col.innerHTML = `
+          <div class="pnm-card">
+            <div class="pnm-photo-wrap">
+              ${
+                photoURL
+                  ? `<img class="pnm-photo" src="${photoURL}" alt="${name}">`
+                  : `<div class="pnm-initials" aria-label="No photo">${initials}</div>`
+              }
+            </div>
+
+            <div class="p-3">
+              <div class="fw-bold" style="font-size:1.05rem;">${name}</div>
+              <div class="muted" style="font-size:.92rem; overflow-wrap:anywhere;">${email}</div>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(col);
+      });
+    }
+
+    function applyFilters(){
+      const q = normalize(searchInput.value);
+      const sorted = sortPnms(allPnms, sortSelect.value);
+
+      if (!q) {
+        render(sorted);
+        return;
+      }
+
+      const filtered = sorted.filter(p => {
+        const name = normalize(fullName(p));
+        const email = normalize(p.email || "");
+        return name.includes(q) || email.includes(q);
+      });
+
+      render(filtered);
+    }
+
+    async function loadPnms(){
+      // Query only PNMs
+      const qPnms = query(collection(db, "users"), where("role", "==", "pnm"));
+      const snap = await getDocs(qPnms);
+
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allPnms = list;
+
+      applyFilters();
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "signin.html";
+        return;
+      }
+
+      // Role gate: brother/admin only
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      const role = userSnap.exists() ? (userSnap.data().role || "pnm").toLowerCase() : "pnm";
+      const firstName = userSnap.exists() ? (userSnap.data().firstName || user.email) : user.email;
+
+      if (role !== "brother" && role !== "admin") {
+        window.location.href = "index.html";
+        return;
+      }
+
+      // Greeting + logout
+      greeting.textContent = `Hi, ${firstName}!`;
+      authButton.textContent = "Log Out";
+      authButton.href = "#";
+      authButton.onclick = async (e) => {
+        e.preventDefault();
+        await signOut(auth);
+        window.location.href = "signin.html";
+      };
+
+      // Load PNMs
+      try {
+        await loadPnms();
+      } catch (err) {
+        console.error(err);
+        subtitle.textContent = "Error loading PNMs.";
+        grid.innerHTML = "";
+      }
+    });
+
+    searchInput.addEventListener("input", applyFilters);
+    sortSelect.addEventListener("change", applyFilters);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

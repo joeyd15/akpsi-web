@@ -113,6 +113,7 @@
 
           <!-- Brother-only -->
           <li class="nav-item d-none" id="submitMentionLink"><a class="nav-link" href="mentions.html">Submit Mention</a></li>
+          <li class="nav-item d-none" id="pnmPics"><a class="nav-link" href="pnms-pics.html"> PNM Pictures</a></li>
           <li class="nav-item d-none" id="submitInterviewLink"><a class="nav-link" href="interview.html">Submit Interview</a></li>
           <li class="nav-item d-none" id="myCreditsLink"><a class="nav-link" href="my-credits.html">My Credits</a></li>
           <li class="nav-item d-none" id="votingNightLink"><a class="nav-link" href="voting.html">Voting Night</a></li>
@@ -130,7 +131,7 @@
           <li class="nav-item d-none" id="interviewDashboardLink"><a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a></li>
 
           <!-- ✅ Admin can upload ANYONE's photo -->
-          <li class="nav-item d-none" id="uploadPNMPhotosLink"><a class="nav-link" href="upload-photo.html">Upload PNM Photos</a></li>
+         
 
           <!-- Greeting (only when signed in) -->
           <li class="nav-item d-none" id="greetingItem"><a class="nav-link" id="greeting">Hi!</a></li>
@@ -219,6 +220,7 @@
         myCreditsLink,
         votingNightLink,
         editProfileLink,
+        pnmPics,
         pnmApplicationLink,
         adminPortalLink,
         pnmDashboardLink,
@@ -280,6 +282,7 @@
         submitInterviewLink.classList.remove("d-none");
         myCreditsLink.classList.remove("d-none");
         votingNightLink.classList.remove("d-none");
+        pnmPics.classList.remove("d-none");
         return;
       }
 
@@ -289,6 +292,7 @@
         rushDashboardLink.classList.remove("d-none");
         interviewDashboardLink.classList.remove("d-none");
         uploadPNMPhotosLink.classList.remove("d-none");
+        pnmPics.classList.remove("d-none");
         return;
       }
     });
