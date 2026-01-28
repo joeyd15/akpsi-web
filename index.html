@@ -124,6 +124,7 @@
           <!-- Brother-only -->
           <li class="nav-item d-none" id="submitMentionLink"><a class="nav-link" href="mentions.html">Submit Mention</a></li>
           <li class="nav-item d-none" id="submitInterviewLink"><a class="nav-link" href="interview.html">Submit Interview</a></li>
+          <li class="nav-item d-none" id="myCreditsLink"><a class="nav-link" href="my-credits.html">My Credits</a></li>
           <li class="nav-item d-none" id="votingNightLink"><a class="nav-link" href="voting.html">Voting Night</a></li>
 
           <!-- PNM-only -->
@@ -200,6 +201,7 @@
     const membersLink = document.getElementById("membersLink");
     const submitMentionLink = document.getElementById("submitMentionLink");
     const submitInterviewLink = document.getElementById("submitInterviewLink");
+    const myCreditsLink = document.getElementById("myCreditsLink");
     const votingNightLink = document.getElementById("votingNightLink");
     const pnmApplicationLink = document.getElementById("pnmApplicationLink");
 
@@ -216,6 +218,7 @@
         submitMentionLink,
         submitInterviewLink,
         votingNightLink,
+        myCreditsLink,
         pnmApplicationLink,
         adminPortalLink,
         pnmDashboardLink,
@@ -260,6 +263,7 @@
         membersLink.classList.remove("d-none");
         submitMentionLink.classList.remove("d-none");
         submitInterviewLink.classList.remove("d-none");
+        myCreditsLink.classList.remove("d-none");
         votingNightLink.classList.remove("d-none");
         return;
       }
