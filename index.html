@@ -20,7 +20,7 @@
 
     body {
       font-family: 'Raleway', sans-serif;
-      background: #a5c1eb; /* ✅ grey background */
+      background: #a5c1eb;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -31,22 +31,16 @@
       -webkit-backdrop-filter: blur(6px);
     }
 
-    .navbar-brand {
-      letter-spacing: 0.5px;
-    }
+    .navbar-brand { letter-spacing: 0.5px; }
 
     .navbar-nav .nav-link {
       opacity: 0.9;
       transition: opacity 0.15s ease;
     }
+    .navbar-nav .nav-link:hover { opacity: 1; }
 
-    .navbar-nav .nav-link:hover {
-      opacity: 1;
-    }
-
-    /* ✅ New homepage layout (no full-screen background image) */
     .home-hero {
-      margin-top: 100px; /* accounts for fixed navbar */
+      margin-top: 100px;
       padding: 4rem 0;
     }
 
@@ -93,12 +87,8 @@
     }
 
     @media (max-width: 768px) {
-      .hero-card {
-        padding: 2.25rem;
-      }
-      .hero-title {
-        font-size: 2rem;
-      }
+      .hero-card { padding: 2.25rem; }
+      .hero-title { font-size: 2rem; }
     }
   </style>
 </head>
@@ -127,14 +117,20 @@
           <li class="nav-item d-none" id="myCreditsLink"><a class="nav-link" href="my-credits.html">My Credits</a></li>
           <li class="nav-item d-none" id="votingNightLink"><a class="nav-link" href="voting.html">Voting Night</a></li>
 
+          <!-- ✅ PNM + Brother (their own profile only) -->
+          <li class="nav-item d-none" id="editProfileLink"><a class="nav-link" href="edit-profile.html">Edit Profile</a></li>
+
           <!-- PNM-only -->
           <li class="nav-item d-none" id="pnmApplicationLink"><a class="nav-link" href="application.html">PNM Application</a></li>
 
-          <!-- Admin-only (left alone for now) -->
+          <!-- Admin-only -->
           <li class="nav-item d-none" id="adminPortalLink"><a class="nav-link" href="admin-portal.html">Admin Portal</a></li>
           <li class="nav-item d-none" id="pnmDashboardLink"><a class="nav-link" href="pnm-dashboard.html">PNM Dashboard</a></li>
           <li class="nav-item d-none" id="rushDashboardLink"><a class="nav-link" href="rush-dashboard.html">Rush Dashboard</a></li>
           <li class="nav-item d-none" id="interviewDashboardLink"><a class="nav-link" href="interview-dashboard.html">Interview Dashboard</a></li>
+
+          <!-- ✅ Admin can upload ANYONE's photo -->
+          <li class="nav-item d-none" id="uploadPNMPhotosLink"><a class="nav-link" href="upload-photo.html">Upload PNM Photos</a></li>
 
           <!-- Greeting (only when signed in) -->
           <li class="nav-item d-none" id="greetingItem"><a class="nav-link" id="greeting">Hi!</a></li>
@@ -199,17 +195,20 @@
     const greeting = document.getElementById("greeting");
 
     const membersLink = document.getElementById("membersLink");
+
     const submitMentionLink = document.getElementById("submitMentionLink");
     const submitInterviewLink = document.getElementById("submitInterviewLink");
     const myCreditsLink = document.getElementById("myCreditsLink");
     const votingNightLink = document.getElementById("votingNightLink");
+
+    const editProfileLink = document.getElementById("editProfileLink");
     const pnmApplicationLink = document.getElementById("pnmApplicationLink");
 
-    // Admin links (left alone for now)
     const adminPortalLink = document.getElementById("adminPortalLink");
     const pnmDashboardLink = document.getElementById("pnmDashboardLink");
     const rushDashboardLink = document.getElementById("rushDashboardLink");
     const interviewDashboardLink = document.getElementById("interviewDashboardLink");
+    const uploadPNMPhotosLink = document.getElementById("uploadPNMPhotosLink");
 
     function hideAllRoleLinks() {
       [
@@ -217,18 +216,20 @@
         membersLink,
         submitMentionLink,
         submitInterviewLink,
-        votingNightLink,
         myCreditsLink,
+        votingNightLink,
+        editProfileLink,
         pnmApplicationLink,
         adminPortalLink,
         pnmDashboardLink,
         rushDashboardLink,
-        interviewDashboardLink
+        interviewDashboardLink,
+        uploadPNMPhotosLink
       ].forEach(el => el.classList.add("d-none"));
     }
 
     onAuthStateChanged(auth, async (user) => {
-      // Default state (logged out): ONLY Home + Sign In
+      // Default (logged out)
       hideAllRoleLinks();
       authButton.textContent = "Sign In";
       authButton.href = "signin.html";
@@ -236,14 +237,24 @@
 
       if (!user) return;
 
-      // Signed in
-      const userSnap = await getDoc(doc(db, "users", user.uid));
-      const role = userSnap.exists() ? (userSnap.data().role || "pnm") : "pnm";
-      const firstName = userSnap.exists() ? (userSnap.data().firstName || user.email) : user.email;
+      // Fetch role from Firestore
+      let role = "pnm";
+      let firstName = user.email;
+
+      try {
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+          role = (userSnap.data().role || "pnm").toLowerCase();
+          firstName = userSnap.data().firstName || user.email;
+        }
+      } catch (e) {
+        console.error("Error loading user role:", e);
+      }
 
       // Greeting + logout
       greetingItem.classList.remove("d-none");
       greeting.textContent = `Hi, ${firstName}!`;
+
       authButton.textContent = "Log Out";
       authButton.href = "#";
       authButton.onclick = async (e) => {
@@ -252,15 +263,19 @@
         window.location.href = "signin.html";
       };
 
-      // Role-based nav
+      // Always signed-in links
+      membersLink.classList.remove("d-none");
+
+      // ✅ Let PNMs/Brothers/Admin open Edit Profile (it should only allow editing their own data)
+      editProfileLink.classList.remove("d-none");
+
+      // Role-based links
       if (role === "pnm") {
-        membersLink.classList.remove("d-none");
         pnmApplicationLink.classList.remove("d-none");
         return;
       }
 
       if (role === "brother") {
-        membersLink.classList.remove("d-none");
         submitMentionLink.classList.remove("d-none");
         submitInterviewLink.classList.remove("d-none");
         myCreditsLink.classList.remove("d-none");
@@ -268,13 +283,12 @@
         return;
       }
 
-      // Admin left alone (keeps your admin access pattern)
       if (role === "admin") {
-        membersLink.classList.remove("d-none");
         adminPortalLink.classList.remove("d-none");
         pnmDashboardLink.classList.remove("d-none");
         rushDashboardLink.classList.remove("d-none");
         interviewDashboardLink.classList.remove("d-none");
+        uploadPNMPhotosLink.classList.remove("d-none");
         return;
       }
     });
