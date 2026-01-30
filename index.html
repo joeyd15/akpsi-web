@@ -112,11 +112,13 @@
           <li class="nav-item d-none" id="membersLink"><a class="nav-link" href="members.html">Members</a></li>
 
           <!-- Brother-only -->
-          <li class="nav-item d-none" id="submitMentionLink"><a class="nav-link" href="mentions.html">Submit Mention</a></li>
           <li class="nav-item d-none" id="pnmPics"><a class="nav-link" href="pnms-pics.html"> PNM Pictures</a></li>
+          <li class="nav-item d-none" id="submitMentionLink"><a class="nav-link" href="mentions.html">Submit Mention</a></li>
           <li class="nav-item d-none" id="submitInterviewLink"><a class="nav-link" href="interview.html">Submit Interview</a></li>
           <li class="nav-item d-none" id="myCreditsLink"><a class="nav-link" href="my-credits.html">My Credits</a></li>
           <li class="nav-item d-none" id="votingNightLink"><a class="nav-link" href="voting.html">Voting Night</a></li>
+          <li class="nav-item d-none" id="formsLink"><a class="nav-link" href="view-forms.html">Forms</a></li>
+
 
           <!-- ✅ PNM + Brother (their own profile only) -->
           <li class="nav-item d-none" id="editProfileLink"><a class="nav-link" href="edit-profile.html">Edit Profile</a></li>
@@ -201,6 +203,7 @@
     const submitMentionLink = document.getElementById("submitMentionLink");
     const submitInterviewLink = document.getElementById("submitInterviewLink");
     const myCreditsLink = document.getElementById("myCreditsLink");
+    const formsLink = document.getElementById("formsLink");
     const votingNightLink = document.getElementById("votingNightLink");
     const pnmPics = document.getElementById("pnmPics");
 
@@ -222,6 +225,7 @@
         submitInterviewLink,
         myCreditsLink,
         votingNightLink,
+        formsLink,
         editProfileLink,
         pnmPics,
         pnmApplicationLink,
@@ -286,6 +290,7 @@
         myCreditsLink.classList.remove("d-none");
         votingNightLink.classList.remove("d-none");
         pnmPics.classList.remove("d-none");
+        formsLink.classList.remove("d-none");
         return;
       }
 
@@ -296,6 +301,7 @@
         interviewDashboardLink.classList.remove("d-none");
         uploadPNMPhotosLink.classList.remove("d-none");
         pnmPics.classList.remove("d-none");
+        formsLink.classList.remove("d-none");
         return;
       }
     });

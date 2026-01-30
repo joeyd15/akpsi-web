@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Forms | AKPsi Portal</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    :root{
+      --akpsi-gold: #C9A227;
+    }
+
+    body {
+      font-family: 'Raleway', sans-serif;
+      background: #a5c1eb;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .navbar {
+      background: rgba(0,0,0,0.85) !important;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .navbar-brand { letter-spacing: 0.5px; }
+
+    .navbar-nav .nav-link {
+      opacity: 0.9;
+      transition: opacity 0.15s ease;
+    }
+    .navbar-nav .nav-link:hover { opacity: 1; }
+
+    .page-wrap{
+      margin-top: 100px;
+      padding: 2.75rem 0;
+    }
+
+    .hero-card {
+      background: #ffffffc2;
+      border-radius: 18px;
+      padding: 2.25rem;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+    }
+
+    .page-title {
+      font-weight: 800;
+      font-size: 2rem;
+      color: #111;
+      letter-spacing: 0.2px;
+      margin: 0;
+    }
+
+    .page-subtitle {
+      color: #334155;
+      margin: 0.25rem 0 0;
+      line-height: 1.6;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .45rem .75rem;
+      border-radius: 999px;
+      background: rgba(0, 51, 102, 0.10);
+      color: #003366;
+      font-weight: 700;
+      letter-spacing: .2px;
+      font-size: .95rem;
+    }
+
+    .list-group-item {
+      border: 0;
+      border-radius: 14px !important;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.88);
+      transition: transform .12s ease, box-shadow .12s ease;
+      padding: 1rem 1.05rem;
+    }
+
+    .list-group-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px rgba(0,0,0,0.12);
+    }
+
+    .form-title {
+      font-weight: 800;
+      color: #111;
+      margin-bottom: 2px;
+    }
+
+    .form-url {
+      color: #475569;
+      font-size: .92rem;
+      word-break: break-word;
+    }
+
+    .empty-state {
+      border: 2px dashed rgba(0,0,0,0.15);
+      border-radius: 16px;
+      padding: 1.25rem;
+      background: rgba(255,255,255,0.6);
+      color: #334155;
+    }
+
+    .btn-akpsi {
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #fff;
+    }
+    .btn-akpsi:hover {
+      border-color: rgba(255,255,255,0.55);
+      color: #fff;
+      opacity: .95;
+    }
+
+    @media (max-width: 768px) {
+      .hero-card { padding: 1.6rem; }
+      .page-title { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar (matches your index) -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">AKPsi Portal</a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html"><i class="bi bi-house-door me-1"></i>Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-outline-light ms-lg-2 btn-akpsi" href="index.html">
+              <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </nav>
+
+  <main class="container page-wrap">
+    <div class="hero-card">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+        <div>
+          <h1 class="page-title">Forms</h1>
+          <p class="page-subtitle">Posted forms from alumni for brothers to access.</p>
+        </div>
+
+        <div class="pill">
+          <i class="bi bi-file-earmark-text"></i>
+          <span id="formsCount">Loading…</span>
+        </div>
+      </div>
+
+      <div id="formsList" class="list-group"></div>
+
+      <div id="formsEmpty" class="empty-state mt-3 d-none">
+        <div class="fw-bold mb-1"><i class="bi bi-inbox me-1"></i>No forms posted yet</div>
+        <div class="small">Check back later — new forms will appear here automatically.</div>
+      </div>
+    </div>
+  </main>
+
+ <script type="module">
+  import { auth, db } from "./jsauth.js";
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  import { doc, getDoc, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+  const formsList = document.getElementById("formsList");
+  const formsEmpty = document.getElementById("formsEmpty");
+  const formsCount = document.getElementById("formsCount"); // (only exists in the styled version; safe either way)
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  async function loadForms(role) {
+    formsList.innerHTML = "";
+    if (formsEmpty) formsEmpty.classList.add("d-none");
+    if (formsCount) formsCount.textContent = "Loading…";
+
+    const q = query(collection(db, "formsLinks"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+
+    let shown = 0;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+
+      // ✅ Only show active forms
+      if (data.active === false) return;
+
+      // ✅ Audience filter (based on your screenshot: audience: "all")
+      // forms page is for brothers/admins, so allow: "all" and "brothers"
+      const audience = String(data.audience || "all").toLowerCase();
+      if (!(audience === "all" || audience === "brothers")) return;
+
+      const title = escapeHtml(data.title || "Form");
+      const url = data.url || "#";
+
+      const a = document.createElement("a");
+      a.className = "list-group-item list-group-item-action";
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.innerHTML = `<div class="fw-bold">${title}</div><div class="small text-muted">${escapeHtml(url)}</div>`;
+
+      formsList.appendChild(a);
+      shown++;
+    });
+
+    if (formsCount) formsCount.textContent = shown === 1 ? "1 form" : `${shown} forms`;
+    if (shown === 0 && formsEmpty) formsEmpty.classList.remove("d-none");
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "signin.html";
+      return;
+    }
+
+    // Fetch role from Firestore (same as index.html)
+    let role = "pnm";
+    try {
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      if (userSnap.exists()) role = (userSnap.data().role || "pnm").toLowerCase();
+    } catch (e) {
+      console.error("Error loading user role:", e);
+    }
+
+    // Only brothers/admins should view this page
+    if (role !== "brother" && role !== "admin") {
+      window.location.href = "index.html";
+      return;
+    }
+
+    await loadForms(role);
+  });
+</script>
+
+
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
