@@ -86,6 +86,14 @@
           <textarea class="form-control" id="accomplishments" rows="3" required></textarea>
         </div>
 
+        <!-- NEW: MISSED RUSH EVENTS QUESTION -->
+        <div class="mb-3">
+          <label class="form-label">
+            Have you missed any events for Rush? If so, which ones and explain why. If you have not missed any, reply N/A.
+          </label>
+          <textarea class="form-control" id="missedRushEvents" rows="3" required></textarea>
+        </div>
+
         <button type="submit" class="btn btn-primary w-100 mt-3">
           Submit Application
         </button>
@@ -177,6 +185,10 @@
           about: document.getElementById("about").value,
           whyAkpsi: document.getElementById("whyAkpsi").value,
           accomplishments: document.getElementById("accomplishments").value,
+
+          // NEW: save missed rush events response to Firestore
+          missedRushEvents: document.getElementById("missedRushEvents").value,
+
           timestamp: new Date().toISOString()
         };
 

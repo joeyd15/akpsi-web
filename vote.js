@@ -57,6 +57,8 @@ const appGrad = document.getElementById("appGrad");
 const appAbout = document.getElementById("appAbout");
 const appWhy = document.getElementById("appWhy");
 const appAccomplishments = document.getElementById("appAccomplishments");
+const appMissedRushEvents = document.getElementById("appMissedRushEvents");
+
 
 // ✅ Admin-only chart/totals
 const chartWrap = document.querySelector(".summary-chart");
@@ -105,7 +107,9 @@ function resetApplicationPanel() {
   appAbout.textContent = "";
   appWhy.textContent = "";
   appAccomplishments.textContent = "";
+  if (appMissedRushEvents) appMissedRushEvents.textContent = "N/A";
 }
+
 
 function resetPNMPanel() {
   pnmPhoto.src = "";
@@ -261,10 +265,12 @@ async function loadPNMAndApplication(pnmId) {
     appAbout.textContent = a.about || "";
     appWhy.textContent = a.whyAkpsi || "";
     appAccomplishments.textContent = a.accomplishments || "";
+    if (appMissedRushEvents) appMissedRushEvents.textContent = a.missedRushEvents || "";
   } else {
     appAbout.textContent = "";
     appWhy.textContent = "";
     appAccomplishments.textContent = "";
+    if (appMissedRushEvents) appMissedRushEvents.textContent = "";
   }
 
   // hook votes chart live

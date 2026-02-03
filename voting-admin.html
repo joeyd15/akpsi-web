@@ -179,20 +179,16 @@
         : null;
 
       if (lockedOrder && lockedOrder.length) {
-        // LOCKED: use 'order'
         renderDropdownFromIds(lockedOrder, nameById);
         updateStatus(`Order is LOCKED (${lockedOrder.length} PNMs).`);
       } else if (draftOrder && draftOrder.length) {
-        // UNLOCKED but has draft: use draftOrder (this is the "Generate sticks" behavior)
         renderDropdownFromIds(draftOrder, nameById);
         updateStatus(`Order is UNLOCKED (Draft ready: ${draftOrder.length} PNMs). Click 'Lock Order' to freeze it.`);
       } else {
-        // UNLOCKED and no usable draft: show current list
         renderDropdownFromIds(allIds, nameById);
         updateStatus("Order is UNLOCKED. Click 'Generate Random Order' to create a draft, then 'Lock Order'.");
       }
 
-      // ✅ If saved order/draft was stale and filtered to 0, fall back to current PNMs
       if (pnms.length === 0 && allIds.length > 0) {
         renderDropdownFromIds(allIds, nameById);
         updateStatus("⚠️ Saved order contained stale PNMs. Showing current PNMs instead. Generate/Lock to refresh order.");
@@ -203,7 +199,6 @@
         return;
       }
 
-      // Sync dropdown to activePNM if present
       if (sessionSnap.exists() && sessionSnap.data().activePNM) {
         const activeId = sessionSnap.data().activePNM;
         const idx = pnms.findIndex(p => p.id === activeId);
@@ -228,7 +223,8 @@
       await loadPnmsAndOrderState();
     });
 
-    // ✅ Generate Random Order: writes draftOrder so it PERSISTS even if you unlock / refresh
+    // ✅ FIXED Generate Random Order:
+    // Always pulls ALL current PNMs from Firestore (not just whatever is already in the dropdown)
     generateOrderBtn.onclick = async () => {
       const sessionRef = doc(db, "voting-sessions", sessionId);
       const sessionSnap = await getDoc(sessionRef);
@@ -239,10 +235,12 @@
         return;
       }
 
-      // Build from current dropdown IDs (safe)
-      const ids = pnms.map(p => p.id);
+      // ✅ Pull ALL current PNMs fresh
+      const pnmsSnap = await getDocs(query(collection(db, "users"), where("role", "==", "pnm")));
+      const ids = pnmsSnap.docs.map(d => d.id);
+
       if (!ids.length) {
-        updateStatus("No PNMs available to shuffle.");
+        updateStatus("No PNMs found in /users (role == pnm). Please check role field.");
         return;
       }
 
@@ -274,7 +272,6 @@
         return;
       }
 
-      // Save official order; keep draftOrder (so you can unlock and re-lock same one if you want)
       await setDoc(sessionRef, { order: draft }, { merge: true });
       await loadPnmsAndOrderState();
       updateStatus(`✅ Order LOCKED (${draft.length} PNMs).`);
