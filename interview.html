@@ -119,35 +119,53 @@
     const restrictedNotice = document.getElementById("restrictedNotice");
 
     async function loadPNMs() {
-      pnmSelect.innerHTML = '<option>Loading PNMs...</option>';
-      try {
-        const snapshot = await getDocs(collection(db, "users"));
-        pnmSelect.innerHTML = "";
-        let foundAny = false;
-        snapshot.forEach((docSnap) => {
-          const u = docSnap.data();
-          if (u.role === "pnm") {
-            foundAny = true;
-            const opt = document.createElement("option");
-            opt.value = docSnap.id;
-            opt.textContent = `${u.firstName || ""} ${u.lastName || ""}`;
-            pnmSelect.appendChild(opt);
-          }
+  pnmSelect.innerHTML = '<option>Loading PNMs...</option>';
+  try {
+    const snapshot = await getDocs(collection(db, "users"));
+    pnmSelect.innerHTML = "";
+    const pnms = [];
+
+    snapshot.forEach((docSnap) => {
+      const u = docSnap.data();
+      if (u.role === "pnm") {
+        pnms.push({
+          id: docSnap.id,
+          firstName: u.firstName || "",
+          lastName: u.lastName || ""
         });
-        if (!foundAny) {
-          const opt = document.createElement("option");
-          opt.textContent = "No PNMs found.";
-          opt.disabled = true;
-          pnmSelect.appendChild(opt);
-        }
-      } catch (err) {
-        const opt = document.createElement("option");
-        opt.textContent = "Error loading PNMs.";
-        opt.disabled = true;
-        pnmSelect.appendChild(opt);
-        console.error("Error loading PNMs:", err);
       }
+    });
+
+    if (pnms.length === 0) {
+      const opt = document.createElement("option");
+      opt.textContent = "No PNMs found.";
+      opt.disabled = true;
+      pnmSelect.appendChild(opt);
+      return;
     }
+
+    // sort by last name, then first name
+    pnms.sort((a, b) => {
+      const lastCompare = a.lastName.localeCompare(b.lastName);
+      if (lastCompare !== 0) return lastCompare;
+      return a.firstName.localeCompare(b.firstName);
+    });
+
+    pnms.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.firstName} ${p.lastName}`;
+      pnmSelect.appendChild(opt);
+    });
+  } catch (err) {
+    const opt = document.createElement("option");
+    opt.textContent = "Error loading PNMs.";
+    opt.disabled = true;
+    pnmSelect.appendChild(opt);
+    console.error("Error loading PNMs:", err);
+  }
+}
+
 
     // Auth state check & role-based restriction
     onAuthStateChanged(auth, async (user) => {
