@@ -141,8 +141,8 @@ async function loadPNMs() {
       if (u.role === "pnm") {
         pnms.push({
           id: docSnap.id,
-          firstName: u.firstName || "",
-          lastName: u.lastName || ""
+          firstName: (u.firstName || "").trim(),
+          lastName: (u.lastName || "").trim(),
         });
       }
     });
@@ -155,17 +155,27 @@ async function loadPNMs() {
       return;
     }
 
-    // sort by last name, then first name
     pnms.sort((a, b) => {
-      const lastCompare = a.lastName.localeCompare(b.lastName);
+      const aLast = a.lastName.toLowerCase();
+      const bLast = b.lastName.toLowerCase();
+      const aFirst = a.firstName.toLowerCase();
+      const bFirst = b.firstName.toLowerCase();
+
+      // push ones with no last name to the bottom
+      if (!aLast && bLast) return 1;
+      if (!bLast && aLast) return -1;
+
+      const lastCompare = aLast.localeCompare(bLast);
       if (lastCompare !== 0) return lastCompare;
-      return a.firstName.localeCompare(b.firstName);
+      return aFirst.localeCompare(bFirst);
     });
+
+    console.log("PNMs after sort:", pnms.map(p => `${p.lastName}, ${p.firstName}`));
 
     pnms.forEach((p) => {
       const opt = document.createElement("option");
       opt.value = p.id;
-      opt.textContent = `${p.firstName} ${p.lastName}`;
+      opt.textContent = `${p.firstName} ${p.lastName}`.trim();
       pnmSelect.appendChild(opt);
     });
   } catch (err) {
