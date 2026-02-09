@@ -1,0 +1,7 @@
+
+# Node
+node_modules/
+admin-tools/node_modules/
+
+# Secrets
+admin-tools/serviceAccountKey.json
