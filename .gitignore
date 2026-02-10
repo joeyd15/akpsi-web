@@ -5,3 +5,10 @@ admin-tools/node_modules/
 
 # Secrets
 admin-tools/serviceAccountKey.json
+
+# node / admin scripts
+node_modules/
+package.json
+package-lock.json
+serviceAccountKey.json
+findDuplicateMentions.js
