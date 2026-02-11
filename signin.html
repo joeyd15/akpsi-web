@@ -173,31 +173,41 @@
       }
     });
 
-    // Login handler
-    const loginForm = document.getElementById("loginForm");
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("loginEmail").value.trim();
-      const password = document.getElementById("loginPassword").value;
+// Login handler
+const loginForm = document.getElementById("loginForm");
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
 
-      try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        const user = userCredential.user;
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          window.location.href = "index.html";
-        } else {
-          alert("User record not found in Firestore.");
-        }
-      } catch (error) {
-        alert("Error signing in: " + error.message);
-      }
-    });
+    // revive if missing
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        email: user.email || "",
+        role: "revive_pending",
+        status: "active",
+        revivedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    window.location.href = "index.html";
+  } catch (error) {
+    alert("Error signing in: " + error.message);
+  }
+});
+
+
+
+
+
   </script>
 
   <!-- Bootstrap Bundle -->

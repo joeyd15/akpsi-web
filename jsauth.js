@@ -17,7 +17,8 @@ import {
   addDoc,
   query,
   where,
-  serverTimestamp
+  serverTimestamp,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
 import {
@@ -61,18 +62,34 @@ function listenAuth({
       let firstName = user.email.split("@")[0];
       let canVote = false; // add canVote flag
       try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          role = data.role || "pnm";
-          firstName = data.firstName || firstName;
-          if (role === "brother" || role === "admin") {
-            canVote = true;
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-      }
+  const userRef = doc(db, "users", user.uid);
+  const userDoc = await getDoc(userRef);
+
+  if (userDoc.exists()) {
+    const data = userDoc.data();
+    role = data.role || "pnm";
+    firstName = data.firstName || firstName;
+    if (role === "brother" || role === "admin") {
+      canVote = true;
+    }
+  } else {
+    // 🔐 SAFE REVIVE (only if missing)
+    await setDoc(userRef, {
+      email: user.email || "",
+      role: "revive_pending",   // SAFE default (no privileges)
+      status: "active",
+      createdAt: serverTimestamp(),
+      revivedAt: serverTimestamp()
+    });
+
+    role = "revive_pending";
+    console.warn("User doc was missing. Recreated safely.");
+  }
+
+} catch (err) {
+  console.error("Error fetching user profile:", err);
+}
+
 
       // Attach canVote property to user object
       user.canVote = canVote;
